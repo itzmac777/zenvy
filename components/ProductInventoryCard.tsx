@@ -27,11 +27,11 @@ export function ProductInventoryCard({ product }: { product: Product }) {
       </div>
       <strong className="justify-self-end whitespace-nowrap font-serif text-[15px] font-normal leading-none md:text-[19px]">{product.priceRange}</strong>
       <div className="col-start-2 col-end-4 flex flex-wrap gap-3 justify-self-start md:col-start-2 xl:col-start-auto xl:justify-self-end">
-        <Link href="#" className="inline-flex min-h-8 items-center gap-1.5 text-[13px] font-bold md:border md:border-line md:bg-panel md:px-3">
+        <Link href={`/products/${product.id}`} className="inline-flex min-h-8 items-center gap-1.5 text-[13px] font-bold md:border md:border-line md:bg-panel md:px-3">
           <Icon name="eye" className="h-[15px] w-[15px]" />
           Preview
         </Link>
-        <Link href="#" className="inline-flex min-h-8 items-center gap-1.5 text-[13px] font-bold md:border md:border-line md:bg-panel md:px-3">
+        <Link href={`/products/${product.id}/edit`} className="inline-flex min-h-8 items-center gap-1.5 text-[13px] font-bold md:border md:border-line md:bg-panel md:px-3">
           <Icon name="edit" className="h-[15px] w-[15px]" />
           Modify
         </Link>

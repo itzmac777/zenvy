@@ -1,15 +1,87 @@
-export type ProductStatus = "active" | "low-stock" | "draft";
+export type ProductStatus = "active" | "low-stock" | "draft" | "archived";
+
+export type ProductVariant = {
+  id: string;
+  name: string;
+  option: string;
+  sku: string;
+  stock: number;
+  priceAdjustment: number;
+  active: boolean;
+};
+
+export type ProductDimensions = {
+  length: string;
+  width: string;
+  height: string;
+  unit: "in" | "cm";
+};
+
+export type ProductImage = {
+  id: string;
+  url: string;
+  alt: string;
+  primary?: boolean;
+};
 
 export type Product = {
   id: string;
   name: string;
   brand: string;
-  priceRange: string;
+  sku: string;
+  category: string;
+  status: ProductStatus;
+  description: string;
+  tags: string[];
   image: string;
   alt: string;
+  images: ProductImage[];
+  priceRange: string;
+  wholesalePrice: number;
+  retailPrice: number;
+  currency: "USD";
+  paymentTerms: string;
+  moq: number;
   stock: number;
+  variants: ProductVariant[];
+  weight: string;
+  dimensions: ProductDimensions;
+  leadTime: string;
+  origin: string;
+  returnPolicy: string;
+  featured: boolean;
+  seoTitle: string;
+  seoDescription: string;
+};
+
+export type SaleDiscount = {
+  type: "fixed" | "percent";
+  value: number;
+};
+
+export type SaleLine = {
+  productId: string;
+  productName: string;
+  variantId: string;
+  variantName: string;
   sku: string;
-  status: ProductStatus;
+  quantity: number;
+  unitPrice: number;
+};
+
+export type Sale = {
+  id: string;
+  createdAt: string;
+  buyerName: string;
+  buyerPhone: string;
+  buyerEmail: string;
+  paymentMethod: string;
+  notes: string;
+  discount: SaleDiscount;
+  lines: SaleLine[];
+  subtotal: number;
+  discountTotal: number;
+  total: number;
 };
 
 export type Kpi = {
