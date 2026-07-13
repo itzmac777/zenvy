@@ -12,6 +12,8 @@ dotenv.config({
 const paystationPassword = process.env.PAYSTATION_PASSWORD ?? "dummy-paystation-password";
 const paystationMockFlag = process.env.PAYSTATION_MOCK?.toLowerCase();
 const hasRealPaystationPassword = paystationPassword.trim() !== "" && paystationPassword !== "dummy-paystation-password";
+const serverPublicUrl = process.env.SERVER_PUBLIC_URL ?? `http://localhost:${process.env.PORT ?? 4000}`;
+const imagekitPrivateKey = process.env.IMAGEKIT_PRIVATE_KEY?.trim() ?? "";
 
 export const config = {
   nodeEnv: process.env.NODE_ENV ?? "development",
@@ -24,6 +26,14 @@ export const config = {
   otpDevCode: process.env.OTP_DEV_CODE?.trim() || undefined,
   managerInvitesRequired: process.env.MANAGER_INVITES_REQUIRED === "true",
   uploadDirectory: process.env.UPLOAD_DIR ?? resolve(serverRoot, "uploads"),
+  serverPublicUrl,
+  imagekit: {
+    publicKey: process.env.IMAGEKIT_PUBLIC_KEY?.trim() ?? "",
+    privateKey: imagekitPrivateKey,
+    urlEndpoint: process.env.IMAGEKIT_URL_ENDPOINT?.trim() ?? "",
+    folder: process.env.IMAGEKIT_FIELD_FOLDER?.trim() || "/zenvy/fields",
+    enabled: imagekitPrivateKey.length > 0,
+  },
   paystation: {
     baseUrl: process.env.PAYSTATION_BASE_URL ?? "https://api.paystation.com.bd",
     storeId: process.env.PAYSTATION_STORE_ID ?? "2693-1775830347",

@@ -1,4 +1,5 @@
 import { BookingModel, FieldModel, type BookingRecord, type FieldRecord } from "./models.js";
+import { normalizeMediaUrl } from "./media-storage.js";
 
 type FieldLike = FieldRecord & { _id: unknown };
 type BookingLike = BookingRecord & { _id: unknown };
@@ -21,6 +22,8 @@ function openingHours(field: FieldLike) {
 export function serializeField(field: FieldLike) {
   const prices = priceRange(field);
   const cover = field.images.find((image) => image.isCover) ?? field.images[0];
+  const images = field.images.map((image) => ({ ...image, url: normalizeMediaUrl(image.url) }));
+  const coverUrl = cover?.url ? normalizeMediaUrl(cover.url) : null;
   return {
     id: String(field._id),
     name: field.name,
@@ -54,8 +57,8 @@ export function serializeField(field: FieldLike) {
     },
     weeklyHours: field.weeklyHours.map((day) => ({ dayOfWeek: day.dayOfWeek, isClosed: day.isClosed, opensAt: day.opensAt, closesAt: day.closesAt })),
     openingHours: openingHours(field),
-    images: field.images.map((image) => ({ id: image._id ? String(image._id) : undefined, url: image.url, alt: image.alt, isCover: image.isCover, position: image.position })),
-    image: cover?.url ?? null,
+    images: images.map((image) => ({ id: image._id ? String(image._id) : undefined, url: image.url, alt: image.alt, isCover: image.isCover, position: image.position })),
+    image: coverUrl,
     alt: cover?.alt ?? field.name,
     location: `${field.area}, ${field.city}`,
     locationDetails: { address: field.address, area: field.area, city: field.city, contactPhone: field.contactPhone },

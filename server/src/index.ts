@@ -21,6 +21,7 @@ import { buildAvailability, resolveRequestedSlots } from "./availability.js";
 import { config } from "./config.js";
 import { connectDatabase, databaseReady } from "./db.js";
 import { getFieldDetail, listPublicFields, serializeBooking, serializeField } from "./field-service.js";
+import { storeFieldImage } from "./media-storage.js";
 import {
   AuditLogModel,
   BookingModel,
@@ -413,7 +414,8 @@ app.post("/api/manager/fields/:fieldId/images", asyncRoute(requireManager), uplo
   const isCover = String(request.body?.isCover ?? "false") === "true";
   const images = (field as any).images as Array<Record<string, unknown>>;
   if (isCover) images.forEach((image) => { image.isCover = false; });
-  const image = { url: `/uploads/${request.file.filename}`, alt: String(request.body?.alt ?? field.name), isCover: isCover || images.length === 0, position: images.length };
+  const stored = await storeFieldImage(request.file, field.slug || String(field._id));
+  const image = { url: stored.url, alt: String(request.body?.alt ?? field.name), isCover: isCover || images.length === 0, position: images.length };
   images.push(image);
   await field.save();
   response.status(201).json({ image });

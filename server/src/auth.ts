@@ -8,6 +8,7 @@ import {
   OtpChallengeModel,
   SessionModel,
 } from "./models.js";
+import { normalizeMediaUrl } from "./media-storage.js";
 import { hashInvitation, hashOtp, hashToken, makeOtp, maskPhone, normalizeBangladeshPhone } from "./utils.js";
 
 const OTP_TTL_MS = 5 * 60 * 1000;
@@ -52,7 +53,7 @@ export function serializeManagerSession(context: ManagerContext) {
       status: field.status,
       format: field.format,
       baseRateBdt: field.baseRateBdt,
-      coverImage: cover?.url ?? null,
+      coverImage: cover?.url ? normalizeMediaUrl(cover.url) : null,
     };
   });
   const needsName = !context.user.name;

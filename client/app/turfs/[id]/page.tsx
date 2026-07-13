@@ -39,20 +39,20 @@ export default async function TurfDetailsPage({ params }: TurfPageProps) {
   return (
     <>
       <MarketingHeader showAnnouncement={false} />
-      <main className="mx-auto max-w-[1400px] px-5 pb-16 pt-6 md:px-7 md:pb-20 md:pt-8 xl:px-11">
+      <main className="mx-auto max-w-[1360px] px-4 pb-16 pt-6 sm:px-5 md:px-7 md:pb-20 md:pt-8 xl:px-8">
         <nav aria-label="Breadcrumb" className="mb-6 flex items-center gap-2 text-xs text-muted">
           <Link href="/#slots" className="transition hover:text-ink">Available turfs</Link>
           <span aria-hidden="true">/</span>
           <span className="truncate text-ink">{turf.name}</span>
         </nav>
 
-        <section className="grid gap-10 lg:grid-cols-[minmax(0,1.08fr)_minmax(390px,0.72fr)] lg:items-start xl:gap-14">
+        <section className="mx-auto grid max-w-[1220px] gap-9 lg:grid-cols-[minmax(0,720px)_minmax(350px,410px)] lg:items-start lg:justify-center xl:grid-cols-[minmax(0,760px)_minmax(360px,420px)] xl:gap-12">
           <article className="min-w-0 lg:col-start-1 lg:row-start-1">
             <div className="relative overflow-hidden bg-[#ece8df]">
               {turf.image ? (
-                <Image src={turf.image} alt={turf.alt} width={1200} height={800} unoptimized className="aspect-[16/10] w-full object-cover" priority />
+                <Image src={turf.image} alt={turf.alt} width={1200} height={800} unoptimized className="aspect-[4/3] w-full object-cover sm:aspect-[16/11] lg:aspect-[16/10]" priority />
               ) : (
-                <div className="grid aspect-[16/10] place-items-center"><Icon name="field" className="h-10 w-10 text-muted" /></div>
+                <div className="grid aspect-[4/3] place-items-center sm:aspect-[16/11] lg:aspect-[16/10]"><Icon name="field" className="h-10 w-10 text-muted" /></div>
               )}
               <span className="absolute bottom-4 left-4 bg-[#fffefd]/94 px-3 py-2 text-[10px] font-extrabold uppercase tracking-[0.12em] text-ink backdrop-blur-sm">{turf.terms}</span>
             </div>
@@ -65,13 +65,13 @@ export default async function TurfDetailsPage({ params }: TurfPageProps) {
                   <span className="text-muted">{turf.rating}{turf.ratingCount ? ` (${turf.ratingCount} reviews)` : " · New"}</span>
                 </span>
               </div>
-              <h1 className="mt-3 max-w-[760px] font-serif text-[44px] font-normal leading-[0.98] md:text-[62px]">{turf.name}</h1>
+              <h1 className="mt-3 max-w-[760px] font-serif text-[42px] font-normal leading-[0.98] md:text-[58px]">{turf.name}</h1>
               <p className="mt-4 flex items-center gap-2 text-sm text-muted"><Icon name="location" className="h-4 w-4 shrink-0" />{turf.location}</p>
-              <dl className="mt-8 grid grid-cols-2 border-y border-line md:grid-cols-4">
-                {facts.map((fact, index) => (
-                  <div key={fact.label} className={`min-w-0 py-5 pr-3 ${index > 0 ? "md:border-l md:border-line md:pl-5" : ""} ${index % 2 === 1 ? "border-l border-line pl-4" : ""}`}>
-                    <dt className="flex items-center gap-2 text-[10px] font-extrabold uppercase tracking-[0.11em] text-muted"><Icon name={fact.icon} className="h-4 w-4 text-olive" />{fact.label}</dt>
-                    <dd className="mt-2 text-sm font-bold leading-tight">{fact.value}</dd>
+              <dl className="mt-6 grid grid-cols-2 gap-px border-y border-line bg-line xl:grid-cols-4">
+                {facts.map((fact) => (
+                  <div key={fact.label} className="min-w-0 bg-[#fffefd]/78 px-3 py-3 sm:px-4">
+                    <dt className="flex items-center gap-1.5 text-[9px] font-extrabold uppercase tracking-[0.1em] text-muted"><Icon name={fact.icon} className="h-3.5 w-3.5 shrink-0 text-olive" />{fact.label}</dt>
+                    <dd className="mt-1.5 break-words text-[13px] font-bold leading-tight md:text-sm">{fact.value}</dd>
                   </div>
                 ))}
               </dl>

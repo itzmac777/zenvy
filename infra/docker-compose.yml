@@ -29,6 +29,7 @@ services:
     environment:
       PORT: 4000
       CLIENT_ORIGIN: http://localhost:3000
+      SERVER_PUBLIC_URL: http://localhost:4000
       MONGODB_URI: mongodb://mongo:27017/zenvy
       SESSION_COOKIE_NAME: zenvy_manager_session
       SESSION_DAYS: 30
@@ -36,6 +37,10 @@ services:
       OTP_DEV_CODE: 123456
       MANAGER_INVITES_REQUIRED: "false"
       UPLOAD_DIR: /app/server/uploads
+      IMAGEKIT_PUBLIC_KEY: ${IMAGEKIT_PUBLIC_KEY:-}
+      IMAGEKIT_PRIVATE_KEY: ${IMAGEKIT_PRIVATE_KEY:-}
+      IMAGEKIT_URL_ENDPOINT: ${IMAGEKIT_URL_ENDPOINT:-}
+      IMAGEKIT_FIELD_FOLDER: ${IMAGEKIT_FIELD_FOLDER:-/zenvy/fields}
       PAYSTATION_BASE_URL: https://api.paystation.com.bd
       PAYSTATION_STORE_ID: 2693-1775830347
       PAYSTATION_PASSWORD: dummy-paystation-password
