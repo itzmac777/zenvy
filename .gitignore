@@ -1,5 +1,6 @@
 .next/
 node_modules/
+.npm-cache/
 .pnpm-store/
 tsconfig.tsbuildinfo
 *.log

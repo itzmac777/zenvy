@@ -14,7 +14,7 @@ export type ProductDimensions = {
   length: string;
   width: string;
   height: string;
-  unit: "in" | "cm";
+  unit: "in" | "cm" | "m";
 };
 
 export type ProductImage = {
@@ -143,4 +143,9 @@ export type IconName =
   | "eye"
   | "beauty"
   | "cup"
-  | "kids";
+  | "kids"
+  | "field"
+  | "clock"
+  | "shield"
+  | "briefcase"
+  | "ball";

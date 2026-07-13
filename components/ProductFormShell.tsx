@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { emptyProduct, makeSlug, useProductStore } from "@/lib/product-store";
 import type { Product, ProductStatus, ProductVariant } from "@/lib/types";
 
-const categories = ["Home Decor", "Food & Drink", "Beauty", "Jewelry", "Kids"];
+const categories = ["5-a-side", "7-a-side", "Premium turf", "Late night", "Corporate"];
 const statuses: ProductStatus[] = ["draft", "active", "low-stock", "archived"];
 const inputClass = "min-h-11 border border-line bg-white/80 px-3 text-sm text-ink outline-none transition focus:border-olive";
 const textareaClass = "min-h-28 border border-line bg-white/80 px-3 py-3 text-sm leading-relaxed text-ink outline-none transition focus:border-olive";
@@ -47,7 +47,7 @@ export function ProductFormShell({ productId }: { productId?: string }) {
       ...current,
       variants: [
         ...current.variants,
-        { id: `variant-${Date.now()}`, name: "Option", option: "New variant", sku: `${current.sku}-${current.variants.length + 1}`, stock: 0, priceAdjustment: 0, active: true },
+        { id: `variant-${Date.now()}`, name: "Slot", option: "New slot", sku: `${current.sku}-${current.variants.length + 1}`, stock: 0, priceAdjustment: 0, active: true },
       ],
     }));
   }
@@ -78,13 +78,13 @@ export function ProductFormShell({ productId }: { productId?: string }) {
         <section className="border border-line bg-white/75 p-5 shadow-soft md:p-7">
           <h2 className="font-serif text-[28px] font-normal leading-none">Basics</h2>
           <div className="mt-6 grid gap-4 md:grid-cols-2">
-            <Field label="Product name">
+            <Field label="Turf name">
               <input className={inputClass} value={product.name} onChange={(event) => update("name", event.target.value)} />
             </Field>
-            <Field label="Brand">
+            <Field label="Venue">
               <input className={inputClass} value={product.brand} onChange={(event) => update("brand", event.target.value)} />
             </Field>
-            <Field label="SKU">
+            <Field label="Turf code">
               <input className={inputClass} value={product.sku} onChange={(event) => update("sku", event.target.value)} />
             </Field>
             <Field label="Category">
@@ -122,13 +122,13 @@ export function ProductFormShell({ productId }: { productId?: string }) {
         <section className="border border-line bg-white/75 p-5 shadow-soft md:p-7">
           <h2 className="font-serif text-[28px] font-normal leading-none">Pricing</h2>
           <div className="mt-6 grid gap-4 md:grid-cols-3">
-            <Field label="Wholesale price">
+            <Field label="Base hourly rate">
               <input className={inputClass} type="number" min="0" step="0.01" value={product.wholesalePrice} onChange={(event) => update("wholesalePrice", Number(event.target.value))} />
             </Field>
-            <Field label="Retail price">
+            <Field label="Peak hourly rate">
               <input className={inputClass} type="number" min="0" step="0.01" value={product.retailPrice} onChange={(event) => update("retailPrice", Number(event.target.value))} />
             </Field>
-            <Field label="MOQ">
+            <Field label="Minimum slots">
               <input className={inputClass} type="number" min="1" value={product.moq} onChange={(event) => update("moq", Number(event.target.value))} />
             </Field>
             <Field label="Payment terms">
@@ -152,27 +152,27 @@ export function ProductFormShell({ productId }: { productId?: string }) {
 
         <section className="border border-line bg-white/75 p-5 shadow-soft md:p-7">
           <div className="flex items-center justify-between gap-4">
-            <h2 className="font-serif text-[28px] font-normal leading-none">Variants & inventory</h2>
+            <h2 className="font-serif text-[28px] font-normal leading-none">Slots & availability</h2>
             <button type="button" onClick={addVariant} className="border border-line bg-white px-3 py-2 text-xs font-bold">
-              Add variant
+              Add slot
             </button>
           </div>
           <div className="mt-5 grid gap-3">
             {product.variants.map((variant, index) => (
               <article key={variant.id} className="grid gap-3 border border-line bg-panel/60 p-3 md:grid-cols-[1fr_1fr_1fr_100px_120px_auto] md:items-end">
-                <Field label="Name">
+                <Field label="Type">
                   <input className={inputClass} value={variant.name} onChange={(event) => updateVariant(index, { name: event.target.value })} />
                 </Field>
                 <Field label="Option">
                   <input className={inputClass} value={variant.option} onChange={(event) => updateVariant(index, { option: event.target.value })} />
                 </Field>
-                <Field label="SKU">
+                <Field label="Slot code">
                   <input className={inputClass} value={variant.sku} onChange={(event) => updateVariant(index, { sku: event.target.value })} />
                 </Field>
-                <Field label="Stock">
+                <Field label="Open slots">
                   <input className={inputClass} type="number" min="0" value={variant.stock} onChange={(event) => updateVariant(index, { stock: Number(event.target.value) })} />
                 </Field>
-                <Field label="Price adj.">
+                <Field label="Rate adj.">
                   <input className={inputClass} type="number" step="0.01" value={variant.priceAdjustment} onChange={(event) => updateVariant(index, { priceAdjustment: Number(event.target.value) })} />
                 </Field>
                 <button type="button" onClick={() => removeVariant(index)} disabled={product.variants.length === 1} className="min-h-11 border border-line bg-white px-3 text-xs font-bold disabled:cursor-not-allowed disabled:opacity-40">
@@ -184,9 +184,9 @@ export function ProductFormShell({ productId }: { productId?: string }) {
         </section>
 
         <section className="border border-line bg-white/75 p-5 shadow-soft md:p-7">
-          <h2 className="font-serif text-[28px] font-normal leading-none">Shipping</h2>
+          <h2 className="font-serif text-[28px] font-normal leading-none">Field details</h2>
           <div className="mt-6 grid gap-4 md:grid-cols-3">
-            <Field label="Weight">
+            <Field label="Capacity">
               <input className={inputClass} value={product.weight} onChange={(event) => update("weight", event.target.value)} />
             </Field>
             <Field label="Length">
@@ -198,14 +198,14 @@ export function ProductFormShell({ productId }: { productId?: string }) {
             <Field label="Height">
               <input className={inputClass} value={product.dimensions.height} onChange={(event) => update("dimensions", { ...product.dimensions, height: event.target.value })} />
             </Field>
-            <Field label="Lead time">
+            <Field label="Advance booking">
               <input className={inputClass} value={product.leadTime} onChange={(event) => update("leadTime", event.target.value)} />
             </Field>
-            <Field label="Origin">
+            <Field label="Venue zone">
               <input className={inputClass} value={product.origin} onChange={(event) => update("origin", event.target.value)} />
             </Field>
             <div className="md:col-span-3">
-              <Field label="Return policy">
+              <Field label="Reschedule policy">
                 <textarea className={textareaClass} value={product.returnPolicy} onChange={(event) => update("returnPolicy", event.target.value)} />
               </Field>
             </div>
@@ -232,8 +232,8 @@ export function ProductFormShell({ productId }: { productId?: string }) {
           <p className="mt-2 text-sm text-muted">{product.brand}</p>
           <dl className="mt-5 grid gap-3 border-t border-line pt-5 text-sm">
             <div className="flex justify-between gap-4"><dt className="text-muted">Category</dt><dd className="font-bold">{product.category}</dd></div>
-            <div className="flex justify-between gap-4"><dt className="text-muted">MOQ</dt><dd className="font-bold">{product.moq}</dd></div>
-            <div className="flex justify-between gap-4"><dt className="text-muted">Variants</dt><dd className="font-bold">{product.variants.length}</dd></div>
+            <div className="flex justify-between gap-4"><dt className="text-muted">Min slots</dt><dd className="font-bold">{product.moq}</dd></div>
+            <div className="flex justify-between gap-4"><dt className="text-muted">Slot types</dt><dd className="font-bold">{product.variants.length}</dd></div>
             <div className="flex justify-between gap-4"><dt className="text-muted">Status</dt><dd className="font-bold capitalize">{product.status}</dd></div>
           </dl>
         </div>
@@ -241,7 +241,7 @@ export function ProductFormShell({ productId }: { productId?: string }) {
 
       <div className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-paper/95 px-5 py-3 backdrop-blur-xl md:px-7">
         <div className="mx-auto grid max-w-[1180px] gap-2 md:grid-cols-[1fr_auto_auto_auto] md:items-center">
-          <p className="hidden text-sm text-muted md:block">Save changes locally for demo inventory and POS.</p>
+          <p className="hidden text-sm text-muted md:block">Save changes locally for demo turf inventory and booking flow.</p>
           <button type="button" onClick={() => handleSave("draft", "list")} className="min-h-11 border border-line bg-white px-5 text-sm font-bold">Save draft</button>
           <button type="button" onClick={() => handleSave("active", "preview")} className="min-h-11 border border-olive bg-olive px-5 text-sm font-bold text-white">Publish & preview</button>
           <Link href="/products" className="inline-flex min-h-11 items-center justify-center border border-line bg-white/70 px-5 text-sm font-bold">Cancel</Link>

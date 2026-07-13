@@ -1,6 +1,6 @@
 import { Icon } from "@/components/Icon";
 
-const filters = ["All items", "Low stock", "Drafts", "Active"];
+const filters = ["All turfs", "Few slots", "Drafts", "Active"];
 
 export function FilterRail() {
   return (

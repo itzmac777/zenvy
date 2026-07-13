@@ -20,12 +20,12 @@ export function ProductInventoryCard({ product }: { product: Product }) {
               product.status === "low-stock" ? "bg-[#f1d9d2] text-[#7a4337]" : "bg-[#eee8dd] text-[#2b2824]",
             )}
           >
-            {product.status === "low-stock" ? `Low stock: ${product.stock}` : `Stock: ${product.stock}`}
+            {product.status === "low-stock" ? `Few slots: ${product.stock}` : `Open slots: ${product.stock}`}
           </span>
-          <span className="inline-flex min-h-5 items-center rounded bg-[#eee8dd] px-1.5 text-[11px] font-bold tracking-[0.02em] text-[#2b2824] md:min-h-[22px] md:px-2 md:text-xs">SKU: {product.sku}</span>
+          <span className="inline-flex min-h-5 items-center rounded bg-[#eee8dd] px-1.5 text-[11px] font-bold tracking-[0.02em] text-[#2b2824] md:min-h-[22px] md:px-2 md:text-xs">Code: {product.sku}</span>
         </div>
       </div>
-      <strong className="justify-self-end whitespace-nowrap font-serif text-[15px] font-normal leading-none md:text-[19px]">{product.priceRange}</strong>
+      <strong className="justify-self-end whitespace-nowrap font-serif text-[15px] font-normal leading-none md:text-[19px]">{product.priceRange}/hr</strong>
       <div className="col-start-2 col-end-4 flex flex-wrap gap-3 justify-self-start md:col-start-2 xl:col-start-auto xl:justify-self-end">
         <Link href={`/products/${product.id}`} className="inline-flex min-h-8 items-center gap-1.5 text-[13px] font-bold md:border md:border-line md:bg-panel md:px-3">
           <Icon name="eye" className="h-[15px] w-[15px]" />

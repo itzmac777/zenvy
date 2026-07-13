@@ -4,8 +4,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { products as seedProducts } from "@/data/catalog";
 import type { Product, ProductStatus, Sale, SaleDiscount, SaleLine } from "@/lib/types";
 
-const PRODUCTS_KEY = "zenvy-products-v1";
-const SALES_KEY = "zenvy-sales-v1";
+const PRODUCTS_KEY = "zenvy-turfs-v1";
+const SALES_KEY = "zenvy-bookings-v1";
 
 function cloneProducts(products: Product[]) {
   return products.map((product) => ({
@@ -57,36 +57,36 @@ export function makeSlug(value: string) {
     .trim()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
-  return slug || `product-${Date.now()}`;
+  return slug || `turf-${Date.now()}`;
 }
 
 export function emptyProduct(): Product {
-  const image = "https://images.unsplash.com/photo-1519710164239-da123dc03ef4?auto=format&fit=crop&w=700&q=86";
+  const image = "https://images.unsplash.com/photo-1589473912320-53d690064e06?auto=format&fit=crop&w=700&q=86";
   return {
-    id: `product-${Date.now()}`,
-    name: "Untitled product",
-    brand: "Haven & Fold",
+    id: `turf-${Date.now()}`,
+    name: "Untitled turf",
+    brand: "Zenvy Central",
     sku: `ZV-${Math.floor(1000 + Math.random() * 8999)}`,
-    category: "Home Decor",
+    category: "5-a-side",
     status: "draft",
-    description: "Describe materials, merchandising fit, care notes, and what makes this product easy for retailers to sell.",
+    description: "Describe turf size, playing surface, adult player capacity, amenities, and what makes this field easy to book.",
     tags: ["new"],
     image,
-    alt: "Neutral product placeholder",
-    images: [{ id: "primary", url: image, alt: "Neutral product placeholder", primary: true }],
+    alt: "Football turf placeholder",
+    images: [{ id: "primary", url: image, alt: "Football turf placeholder", primary: true }],
     priceRange: "$0.00",
     wholesalePrice: 0,
     retailPrice: 0,
     currency: "USD",
-    paymentTerms: "Net 60",
+    paymentTerms: "Pay online",
     moq: 1,
     stock: 0,
-    variants: [{ id: "default", name: "Default", option: "Standard", sku: "ZV-DEFAULT", stock: 0, priceAdjustment: 0, active: true }],
-    weight: "",
-    dimensions: { length: "", width: "", height: "", unit: "in" },
-    leadTime: "Ships in 3-5 business days",
-    origin: "New York, NY",
-    returnPolicy: "Returns accepted within 14 days for unused wholesale units.",
+    variants: [{ id: "default", name: "Slot", option: "Standard 60 min", sku: "ZV-SLOT", stock: 0, priceAdjustment: 0, active: true }],
+    weight: "10 adult players",
+    dimensions: { length: "", width: "", height: "", unit: "m" },
+    leadTime: "Book up to 14 days ahead",
+    origin: "Zenvy Central",
+    returnPolicy: "Free reschedule up to 12 hours before kickoff.",
     featured: false,
     seoTitle: "",
     seoDescription: "",
@@ -99,7 +99,7 @@ export function normalizeProduct(product: Product, status?: ProductStatus): Prod
   const activePrices = variants.map((variant) => Number(product.wholesalePrice || 0) + Number(variant.priceAdjustment || 0));
   const min = Math.min(...activePrices);
   const max = Math.max(...activePrices);
-  const cleanName = product.name.trim() || "Untitled product";
+  const cleanName = product.name.trim() || "Untitled turf";
   const id = product.id || makeSlug(cleanName);
   const primary = product.images.find((image) => image.primary) ?? product.images[0];
   return {

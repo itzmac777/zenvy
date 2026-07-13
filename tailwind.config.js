@@ -5,8 +5,8 @@ module.exports = {
     extend: {
       colors: {
         ink: "#171613",
-        olive: "#424933",
-        "olive-dark": "#343a28",
+        olive: "#5363f1",
+        "olive-dark": "#4655d8",
         paper: "#fcfaf6",
         panel: "#f7f3ed",
         line: "#d9d2c7",
@@ -15,7 +15,7 @@ module.exports = {
       },
       fontFamily: {
         serif: ["Georgia", "Times New Roman", "serif"],
-        sans: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"],
+        sans: ["var(--font-dm-sans)", "DM Sans", "ui-sans-serif", "system-ui", "sans-serif"],
       },
       boxShadow: {
         soft: "0 18px 50px rgba(38, 35, 30, 0.04)",
