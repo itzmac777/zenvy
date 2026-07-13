@@ -1,0 +1,64 @@
+services:
+  mongo:
+    image: mongo:7
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    ports:
+      - "27017:27017"
+    volumes:
+      - zenvy-mongo:/data/db
+
+  client:
+    build:
+      context: ..
+      dockerfile: infra/docker/client.Dockerfile
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:4000
+    depends_on:
+      - server
+    ports:
+      - "3000:3000"
+
+  server:
+    build:
+      context: ..
+      dockerfile: infra/docker/server.Dockerfile
+    environment:
+      PORT: 4000
+      CLIENT_ORIGIN: http://localhost:3000
+      MONGODB_URI: mongodb://mongo:27017/zenvy
+      SESSION_COOKIE_NAME: zenvy_manager_session
+      SESSION_DAYS: 30
+      OTP_SECRET: docker-development-otp-secret
+      OTP_DEV_CODE: 123456
+      MANAGER_INVITES_REQUIRED: "false"
+      UPLOAD_DIR: /app/server/uploads
+      PAYSTATION_BASE_URL: https://api.paystation.com.bd
+      PAYSTATION_STORE_ID: 2693-1775830347
+      PAYSTATION_PASSWORD: dummy-paystation-password
+      PAYSTATION_CALLBACK_URL: http://localhost:4000/api/payments/paystation/callback
+      PAYSTATION_MOCK: "true"
+    depends_on:
+      mongo:
+        condition: service_healthy
+    ports:
+      - "4000:4000"
+    volumes:
+      - zenvy-uploads:/app/server/uploads
+
+  caddy:
+    image: caddy:2-alpine
+    depends_on:
+      - client
+      - server
+    ports:
+      - "8080:80"
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+
+volumes:
+  zenvy-mongo:
+  zenvy-uploads:

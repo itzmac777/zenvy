@@ -1,0 +1,167 @@
+import { connectDatabase, disconnectDatabase } from "../src/db.js";
+import { FieldModel, ManagerUserModel } from "../src/models.js";
+
+const images = {
+  nightMatch: "https://images.unsplash.com/photo-1768492263433-b81fdcdce0e9?auto=format&fit=crop&w=900&q=86",
+  aerialLines: "https://images.unsplash.com/photo-1589473912320-53d690064e06?auto=format&fit=crop&w=900&q=86",
+  seatedPitch: "https://images.unsplash.com/photo-1697096910541-50a5cf85c1b6?auto=format&fit=crop&w=900&q=86",
+  stadiumAerial: "https://images.unsplash.com/photo-1714213450890-3f465d40ed46?auto=format&fit=crop&w=900&q=86",
+};
+
+const baseHours = Array.from({ length: 7 }, (_, dayOfWeek) => ({
+  dayOfWeek,
+  isClosed: false,
+  opensAt: "08:00",
+  closesAt: "23:00",
+}));
+
+const fields = [
+  {
+    slug: "cage-north",
+    name: "Cage North 5-a-side",
+    code: "TURF-N5",
+    area: "Downtown",
+    address: "12 Indoor Lane, Downtown",
+    format: "5-a-side",
+    capacity: 10,
+    surface: "Cushioned 3G turf",
+    lengthM: 30,
+    widthM: 18,
+    heightM: 7,
+    image: images.nightMatch,
+    description: "A quick, enclosed pitch built for sharp five-a-side games. Bright match lighting and close boards keep weeknight football fast.",
+    amenities: ["Changing rooms", "Match ball", "Bibs included", "Showers", "Free parking", "Digital scoreboard"],
+  },
+  {
+    slug: "summit-seven",
+    name: "Summit Seven Turf",
+    code: "TURF-S7",
+    area: "Midtown",
+    address: "Level 3, Skyline Arena, Midtown",
+    format: "7-a-side",
+    capacity: 14,
+    surface: "FIFA-grade 4G turf",
+    lengthM: 46,
+    widthM: 28,
+    heightM: 9,
+    image: images.aerialLines,
+    description: "A full-width seven-a-side field with a firm FIFA-grade surface and generous run-off for competitive squads.",
+    amenities: ["Locker rooms", "Referee room", "Floodlights", "Spectator deck", "Water station", "Equipment rental"],
+  },
+  {
+    slug: "warehouse-court",
+    name: "Warehouse Court",
+    code: "TURF-WH",
+    area: "East End",
+    address: "42 Playhouse Road, East End",
+    format: "6-a-side",
+    capacity: 12,
+    surface: "Soft-fill 3G turf",
+    lengthM: 36,
+    widthM: 22,
+    heightM: 8,
+    image: images.seatedPitch,
+    description: "A fully covered court with warm floodlights, a forgiving surface, and benches running the touchline.",
+    amenities: ["Covered pitch", "Spectator benches", "Changing rooms", "Ball rental", "Cafe", "Bike parking"],
+  },
+  {
+    slug: "terrace-pitch",
+    name: "Terrace Pitch",
+    code: "TURF-TC",
+    area: "Central district",
+    address: "8 Central Terrace, Dhaka",
+    format: "6-a-side",
+    capacity: 12,
+    surface: "Premium 4G turf",
+    lengthM: 38,
+    widthM: 24,
+    heightM: 8,
+    image: images.stadiumAerial,
+    description: "A polished central pitch designed for recurring teams, company socials, and organized adult leagues.",
+    amenities: ["Private showers", "Team lounge", "Match coordinator", "Scoreboard", "Secure parking", "Refreshment bar"],
+  },
+  {
+    slug: "after-dark",
+    name: "After Dark Futsal",
+    code: "TURF-AD",
+    area: "Northline",
+    address: "19 Northline Club Road, Dhaka",
+    format: "Futsal",
+    capacity: 10,
+    surface: "Low-pile futsal turf",
+    lengthM: 28,
+    widthM: 16,
+    heightM: 7,
+    image: images.nightMatch,
+    description: "A compact late-night futsal court with crisp lighting and a fast technical surface.",
+    amenities: ["Late-night access", "Changing rooms", "Match ball", "Cold drinks", "Street parking", "Music system"],
+  },
+  {
+    slug: "green-room",
+    name: "Green Room Turf",
+    code: "TURF-GR",
+    area: "Harbor quarter",
+    address: "5 Harbor Five Avenue, Dhaka",
+    format: "5-a-side",
+    capacity: 10,
+    surface: "High-grip 4G turf",
+    lengthM: 32,
+    widthM: 19,
+    heightM: 7,
+    image: images.aerialLines,
+    description: "A private five-a-side room with a quiet premium feel, clean sightlines, and a consistent high-grip surface.",
+    amenities: ["Private locker room", "Showers", "Towel service", "Filtered water", "Reserved parking", "Video highlights"],
+  },
+];
+
+await connectDatabase();
+
+const owner = await ManagerUserModel.findOneAndUpdate(
+  { phone: "+8801700000000" },
+  { $set: { name: "Maya Rahman", status: "ACTIVE", onboardedAt: new Date() } },
+  { upsert: true, returnDocument: "after" },
+);
+
+for (const field of fields) {
+  await FieldModel.findOneAndUpdate(
+    { slug: field.slug },
+    {
+      $set: {
+        ownerId: owner._id,
+        slug: field.slug,
+        name: field.name,
+        code: field.code,
+        address: field.address,
+        area: field.area,
+        city: "Dhaka",
+        contactPhone: "+8801700000000",
+        format: field.format,
+        description: field.description,
+        capacity: field.capacity,
+        surface: field.surface,
+        lengthM: field.lengthM,
+        widthM: field.widthM,
+        heightM: field.heightM,
+        amenities: field.amenities,
+        status: "PUBLISHED",
+        featured: ["cage-north", "summit-seven", "terrace-pitch"].includes(field.slug),
+        bookingWindowDays: 30,
+        minLeadMinutes: 60,
+        reschedulePolicy: "Free reschedule up to 12 hours before kickoff.",
+        baseRateBdt: 1,
+        pricingMode: "SAME_ALL_DAY",
+        dayStart: "06:00",
+        nightStart: "18:00",
+        dayRateBdt: null,
+        nightRateBdt: null,
+        images: [{ url: field.image, alt: field.name, isCover: true, position: 0 }],
+        weeklyHours: baseHours,
+        pricingRules: [],
+      },
+    },
+    { upsert: true },
+  );
+}
+
+console.log(`Seeded ${fields.length} fields at BDT 1/hour for +8801700000000.`);
+await disconnectDatabase();
