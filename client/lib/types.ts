@@ -159,6 +159,7 @@ export type IconName =
   | "shield"
   | "briefcase"
   | "ball"
+  | "arrow-left"
   | "arrow-right"
   | "arrow-down"
   | "check"

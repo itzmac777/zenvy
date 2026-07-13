@@ -30,6 +30,7 @@ const paths: Record<IconName, string[]> = {
   shield: ["M12 3 20 6v5c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z", "M9 12l2 2 4-5"],
   briefcase: ["M9 7V5h6v2", "M4 7h16v12H4z", "M4 12h16", "M10 12v2h4v-2"],
   ball: ["M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z", "M12 7l3 2v4l-3 2-3-2V9z", "M9 9 6.5 7", "M15 9l2.5-2", "M9 13l-2.5 3", "M15 13l2.5 3"],
+  "arrow-left": ["M19 12H5", "m11 6-6 6 6 6"],
   "arrow-right": ["M5 12h14", "m13 6 6 6-6 6"],
   "arrow-down": ["M12 5v14", "m6 13 6 6 6-6"],
   check: ["m5 12 4 4L19 6"],

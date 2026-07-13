@@ -23,7 +23,7 @@ export default async function HomePage() {
   return (
     <>
       <MarketingHeader />
-      <main className="mx-auto max-w-[1400px] px-5 pb-12 md:px-7 xl:px-11">
+      <main className="mx-auto max-w-[1400px] overflow-x-hidden px-5 pb-12 md:px-7 xl:px-11">
         <section id="turfs" className="mx-auto max-w-[1080px] py-10 md:py-14">
           <h2 className="font-serif text-[30px] font-normal leading-none md:text-[34px]">Choose your turf type</h2>
           <div className="scrollbar-none -mx-5 mt-6 overflow-x-auto px-5 md:mx-0 md:px-0"><div className="flex w-max gap-3 md:grid md:w-full md:grid-cols-5 md:gap-4">{categories.map((category, index) => <a key={category.label} href={category.href} className={`inline-flex min-h-[46px] min-w-[136px] items-center justify-center gap-2.5 border px-4 text-[11px] font-extrabold tracking-[0.01em] transition hover:-translate-y-px md:min-w-0 ${index === 0 ? "border-olive bg-olive text-white" : "border-line bg-white/70 text-ink hover:border-[#b7ad9f] hover:bg-white"}`}><Icon name={category.icon} className="h-4 w-4" />{category.label}</a>)}</div></div>
