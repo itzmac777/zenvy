@@ -15,22 +15,29 @@ function makeTurfTexture() {
   if (!ctx) return null;
 
   const gradient = ctx.createLinearGradient(0, 0, 1024, 1024);
-  gradient.addColorStop(0, "#fbfaf6");
-  gradient.addColorStop(0.48, "#ebeae4");
-  gradient.addColorStop(1, "#d4d2ca");
+  gradient.addColorStop(0, "#fdfcf8");
+  gradient.addColorStop(0.48, "#f0eee8");
+  gradient.addColorStop(1, "#dddad2");
   ctx.fillStyle = gradient;
   ctx.fillRect(0, 0, 1024, 1024);
 
-  for (let i = 0; i < 3200; i += 1) {
+  for (let i = 0; i < 5200; i += 1) {
     const x = Math.random() * 1024;
     const y = Math.random() * 1024;
-    const length = 4 + Math.random() * 16;
-    ctx.strokeStyle = Math.random() > 0.5 ? "rgba(18,18,17,0.13)" : "rgba(255,255,255,0.32)";
-    ctx.lineWidth = Math.random() * 1.2 + 0.2;
+    const length = 2 + Math.random() * 8;
+    ctx.strokeStyle = Math.random() > 0.58 ? "rgba(18,18,17,0.12)" : "rgba(255,255,255,0.28)";
+    ctx.lineWidth = Math.random() * 0.85 + 0.2;
     ctx.beginPath();
     ctx.moveTo(x, y);
     ctx.lineTo(x + Math.random() * 6 - 3, y + length);
     ctx.stroke();
+  }
+
+  for (let i = 0; i < 2600; i += 1) {
+    const x = Math.random() * 1024;
+    const y = Math.random() * 1024;
+    ctx.fillStyle = `rgba(26,25,22,${0.025 + Math.random() * 0.07})`;
+    ctx.fillRect(x, y, Math.random() * 1.2 + 0.35, Math.random() * 1.2 + 0.35);
   }
 
   ctx.strokeStyle = "rgba(18,18,17,0.11)";
@@ -45,7 +52,7 @@ function makeTurfTexture() {
   const texture = new THREE.CanvasTexture(canvas);
   texture.wrapS = THREE.RepeatWrapping;
   texture.wrapT = THREE.RepeatWrapping;
-  texture.repeat.set(7, 5);
+  texture.repeat.set(5, 4);
   texture.anisotropy = 8;
   return texture;
 }
@@ -187,7 +194,7 @@ function createFootball(radius: number, matcapTexture: THREE.Texture | null) {
   });
   const seams = new THREE.LineSegments(
     new THREE.BufferGeometry().setAttribute("position", new THREE.Float32BufferAttribute(seamPositions, 3)),
-    new THREE.LineBasicMaterial({ color: 0x6f6c65, transparent: true, opacity: 0.4, depthTest: true }),
+    new THREE.LineBasicMaterial({ color: 0x55534e, transparent: true, opacity: 0.52, depthTest: true }),
   );
   seams.renderOrder = 3;
   football.add(seams);
@@ -217,117 +224,186 @@ function createFootball(radius: number, matcapTexture: THREE.Texture | null) {
 
 function createReferenceTrail(origin: THREE.Vector3) {
   const trail = new THREE.Group();
-  const direction = new THREE.Vector3(1, -0.09, 0.13).normalize();
-  const depthAxis = new THREE.Vector3(-direction.z, 0, direction.x).normalize();
-  const up = new THREE.Vector3(0, 1, 0);
-  const lengthScale = 0.48;
-  const startSpread = 0.82;
-  const endSpread = 0.64;
-  const depthSpread = 0.55;
-  const mainStrokes = [
-    [1.5, 0.2, 0.12, -0.03, 0.17],
-    [1.88, 0.14, 0.03, 0.04, 0.22],
-    [2.25, 0.09, -0.08, -0.02, 0.31],
-    [2.72, 0.04, -0.2, 0.02, 0.4],
-    [2.34, -0.01, -0.27, -0.05, 0.33],
-    [2.86, -0.07, -0.36, 0.01, 0.39],
-    [2.08, -0.12, -0.34, 0.05, 0.29],
-    [1.74, -0.17, -0.39, -0.03, 0.22],
-    [1.42, -0.22, -0.43, 0.03, 0.17],
-    [2.46, 0.17, -0.02, 0.07, 0.24],
-    [2.02, 0.24, 0.13, -0.06, 0.16],
-  ] as const;
+  function addPencilStroke(points: THREE.Vector3[], opacity: number, seed: number) {
+    const fragments = 4;
+    const pointsPerFragment = points.length / fragments;
 
-  mainStrokes.forEach(([length, startY, endY, depth, opacity], index) => {
-    const start = origin.clone()
-      .addScaledVector(direction, 0.08 + (index % 3) * 0.035)
-      .addScaledVector(up, startY * startSpread)
-      .addScaledVector(depthAxis, depth * depthSpread * 0.35);
-    const end = origin.clone()
-      .addScaledVector(direction, length * lengthScale)
-      .addScaledVector(up, endY * endSpread)
-      .addScaledVector(depthAxis, depth * depthSpread);
-    const control = origin.clone()
-      .addScaledVector(direction, length * lengthScale * 0.5)
-      .addScaledVector(up, startY * startSpread * 0.58 + endY * endSpread * 0.22)
-      .addScaledVector(depthAxis, depth * depthSpread * 0.62);
-    const curve = new THREE.QuadraticBezierCurve3(start, control, end);
-    const line = new THREE.Line(
-      new THREE.BufferGeometry().setFromPoints(curve.getPoints(18)),
-      new THREE.LineBasicMaterial({ color: 0x1b1a17, transparent: true, opacity, depthTest: true }),
-    );
-    line.renderOrder = 4;
-    trail.add(line);
-  });
-
-  const accentPositions: number[] = [];
-  for (let index = 0; index < 14; index += 1) {
-    const startY = Math.sin(index * 1.73) * 0.23;
-    const endY = startY * 1.45 - 0.06 - (index % 3) * 0.025;
-    const depth = Math.cos(index * 2.11) * 0.09;
-    const length = (0.42 + (index % 5) * 0.13) * 0.72;
-    const start = origin.clone()
-      .addScaledVector(direction, 0.04 + (index % 4) * 0.028)
-      .addScaledVector(up, startY * 0.55)
-      .addScaledVector(depthAxis, depth * 0.22);
-    const end = origin.clone()
-      .addScaledVector(direction, length)
-      .addScaledVector(up, endY * 0.66)
-      .addScaledVector(depthAxis, depth * 0.6);
-    accentPositions.push(start.x, start.y, start.z, end.x, end.y, end.z);
+    for (let fragment = 0; fragment < fragments; fragment += 1) {
+      const startIndex = Math.floor(fragment * pointsPerFragment) + (fragment > 0 ? 1 : 0);
+      const endIndex = Math.min(points.length - 1, Math.ceil((fragment + 1) * pointsPerFragment) - (fragment < fragments - 1 ? 1 : 0));
+      if (endIndex - startIndex < 2) continue;
+      const graphiteVariation = 0.72 + Math.sin(seed * 1.91 + fragment * 2.37) * 0.14;
+      const line = new THREE.Line(
+        new THREE.BufferGeometry().setFromPoints(points.slice(startIndex, endIndex + 1)),
+        new THREE.LineBasicMaterial({
+          color: 0x35332e,
+          transparent: true,
+          opacity: opacity * graphiteVariation,
+          depthTest: true,
+          depthWrite: false,
+        }),
+      );
+      line.renderOrder = 5;
+      trail.add(line);
+    }
   }
-  const accents = new THREE.LineSegments(
-    new THREE.BufferGeometry().setAttribute("position", new THREE.Float32BufferAttribute(accentPositions, 3)),
-    new THREE.LineBasicMaterial({ color: 0x1b1a17, transparent: true, opacity: 0.23, depthTest: true }),
-  );
-  accents.renderOrder = 4;
-  trail.add(accents);
 
-  const particlePositions: number[] = [];
-  for (let index = 0; index < 11; index += 1) {
-    const distance = (0.38 + (index % 6) * 0.25) * 0.55;
-    const point = origin.clone()
-      .addScaledVector(direction, distance)
-      .addScaledVector(up, Math.sin(index * 1.9) * (0.08 + distance * 0.04))
-      .addScaledVector(depthAxis, Math.cos(index * 1.4) * 0.06);
-    particlePositions.push(point.x, point.y, point.z);
+  function createPencilPoints({
+    length,
+    startY,
+    endY,
+    seed,
+    frontDepth,
+  }: {
+    length: number;
+    startY: number;
+    endY: number;
+    seed: number;
+    frontDepth: number;
+  }) {
+    const start = origin.clone().add(new THREE.Vector3(0.035 + (seed % 3) * 0.018, startY, frontDepth));
+    const controlOne = origin.clone().add(new THREE.Vector3(length * 0.25, startY - 0.025, frontDepth * 0.78));
+    const controlTwo = origin.clone().add(new THREE.Vector3(length * 0.68, endY + 0.055, frontDepth * 0.3));
+    const end = origin.clone().add(new THREE.Vector3(length, endY, 0.025 + (seed % 4) * 0.009));
+    return new THREE.CubicBezierCurve3(start, controlOne, controlTwo, end).getPoints(34).map((point, pointIndex, points) => {
+      const progress = pointIndex / (points.length - 1);
+      const graphiteJitter = Math.sin((pointIndex + 1) * (2.17 + seed * 0.13)) * 0.007;
+      const endFlutter = Math.max(0, (progress - 0.68) / 0.32);
+      const flutter = Math.sin(endFlutter * Math.PI * 1.7 + seed * 0.83) * 0.025 * endFlutter;
+      return point.clone().add(new THREE.Vector3(
+        Math.cos(pointIndex * 1.73 + seed) * 0.0035,
+        graphiteJitter + flutter,
+        Math.sin(pointIndex * 1.31 + seed * 0.7) * 0.004 + Math.cos(endFlutter * Math.PI * 2 + seed) * 0.014 * endFlutter,
+      ));
+    });
   }
-  const particles = new THREE.Points(
-    new THREE.BufferGeometry().setAttribute("position", new THREE.Float32BufferAttribute(particlePositions, 3)),
-    new THREE.PointsMaterial({ color: 0x1b1a17, size: 0.018, transparent: true, opacity: 0.2, sizeAttenuation: true }),
-  );
-  particles.renderOrder = 4;
-  trail.add(particles);
+
+  const primaryCount = 12;
+  for (let index = 0; index < primaryCount; index += 1) {
+    const band = index / (primaryCount - 1) - 0.5;
+    const points = createPencilPoints({
+      length: 1.78 + (index % 5) * 0.31,
+      startY: band * 0.37 + Math.sin(index * 1.41) * 0.02,
+      endY: -0.13 + band * 0.58 - (index % 3) * 0.03,
+      seed: index + 1,
+      frontDepth: 0.365 - Math.abs(band) * 0.025,
+    });
+    const opacity = 0.27 + (index % 4) * 0.055;
+    addPencilStroke(points, opacity, index + 1);
+
+    if (index % 2 === 0) {
+      const echo = points.map((point, pointIndex) => point.clone().add(new THREE.Vector3(
+        0,
+        Math.sin(pointIndex * 1.17 + index) * 0.006 + 0.009,
+        0.006,
+      )));
+      addPencilStroke(echo, opacity * 0.28, index + 11);
+    }
+  }
+
+  const filamentCount = 6;
+  for (let index = 0; index < filamentCount; index += 1) {
+    const band = index / (filamentCount - 1) - 0.5;
+    const points = createPencilPoints({
+      length: 1.02 + (index % 4) * 0.28,
+      startY: band * 0.48 + Math.cos(index * 1.63) * 0.025,
+      endY: -0.1 + band * 0.7,
+      seed: index + 21,
+      frontDepth: 0.38 - Math.abs(band) * 0.035,
+    });
+    addPencilStroke(points, 0.15 + (index % 3) * 0.035, index + 21);
+  }
+
+  for (let loopIndex = 0; loopIndex < 5; loopIndex += 1) {
+    const radiusX = 0.16 + loopIndex * 0.035;
+    const radiusY = 0.1 + loopIndex * 0.024;
+    const phase = loopIndex * 0.74;
+    const loopPoints = Array.from({ length: 30 }, (_, pointIndex) => {
+      const progress = pointIndex / 29;
+      const angle = progress * Math.PI * 1.82 + phase;
+      const taper = 0.72 + progress * 0.28;
+      return origin.clone().add(new THREE.Vector3(
+        0.13 + Math.cos(angle) * radiusX * taper,
+        -0.02 + Math.sin(angle) * radiusY * taper + Math.sin(pointIndex * 1.9 + loopIndex) * 0.006,
+        0.405 + Math.cos(angle * 0.7) * 0.012 + loopIndex * 0.003,
+      ));
+    });
+    addPencilStroke(loopPoints, 0.18 + loopIndex * 0.025, loopIndex + 41);
+  }
 
   return trail;
 }
 
 function addGoal(group: THREE.Group) {
-  const postMaterial = makeStandard(0x171613, 0.5, 0);
-  const netMaterial = new THREE.LineBasicMaterial({ color: 0x171613, transparent: true, opacity: 0.32 });
+  const postMaterial = new THREE.MeshBasicMaterial({ color: 0x2c2a26 });
+  const netMaterial = new THREE.LineBasicMaterial({ color: 0x34322d, transparent: true, opacity: 0.36 });
+  const netEchoMaterial = new THREE.LineBasicMaterial({ color: 0x625f58, transparent: true, opacity: 0.15 });
   const x = 2.65;
   const z = -4.35;
-  const width = 3.55;
-  const height = 1.85;
-  const depth = 1.08;
+  const width = 4.45;
+  const height = 2.4;
+  const depth = 1.16;
+  const left = x - width / 2;
+  const right = x + width / 2;
 
-  group.add(makeTubeBetween(new THREE.Vector3(x - width / 2, 0, z), new THREE.Vector3(x - width / 2, height, z), 0.024, postMaterial));
-  group.add(makeTubeBetween(new THREE.Vector3(x + width / 2, 0, z), new THREE.Vector3(x + width / 2, height, z), 0.024, postMaterial));
-  group.add(makeTubeBetween(new THREE.Vector3(x - width / 2, height, z), new THREE.Vector3(x + width / 2, height, z), 0.024, postMaterial));
-  group.add(makeTubeBetween(new THREE.Vector3(x - width / 2, 0, z), new THREE.Vector3(x - width / 2, 0, z - depth), 0.018, postMaterial));
-  group.add(makeTubeBetween(new THREE.Vector3(x + width / 2, 0, z), new THREE.Vector3(x + width / 2, 0, z - depth), 0.018, postMaterial));
+  group.add(makeTubeBetween(new THREE.Vector3(left, 0, z), new THREE.Vector3(left, height, z), 0.034, postMaterial));
+  group.add(makeTubeBetween(new THREE.Vector3(right, 0, z), new THREE.Vector3(right, height, z), 0.034, postMaterial));
+  group.add(makeTubeBetween(new THREE.Vector3(left, height, z), new THREE.Vector3(right, height, z), 0.034, postMaterial));
+  group.add(makeTubeBetween(new THREE.Vector3(left, 0, z), new THREE.Vector3(left, 0, z - depth), 0.022, postMaterial));
+  group.add(makeTubeBetween(new THREE.Vector3(right, 0, z), new THREE.Vector3(right, 0, z - depth), 0.022, postMaterial));
 
-  const points: number[] = [];
-  for (let i = 0; i <= 10; i += 1) {
-    const px = x - width / 2 + (width * i) / 10;
-    points.push(px, 0.06, z - depth, px, height, z);
+  function netPoint(xProgress: number, yProgress: number, echo = false) {
+    const edgeWeight = Math.sin(Math.PI * xProgress);
+    const sag = edgeWeight * (0.07 + (1 - yProgress) * 0.1);
+    const jitter = Math.sin(xProgress * 31.7 + yProgress * 18.3) * (echo ? 0.022 : 0.012);
+    return new THREE.Vector3(
+      left + width * xProgress + jitter,
+      0.045 + height * yProgress + Math.sin(xProgress * 19 + yProgress * 7) * 0.012,
+      z - depth * (1 - yProgress) - sag - (echo ? 0.018 : 0),
+    );
   }
-  for (let i = 0; i <= 7; i += 1) {
-    const py = 0.08 + (height * i) / 7;
-    points.push(x - width / 2, py, z - depth * 0.98, x + width / 2, py, z - depth * 0.98);
+
+  for (let column = 0; column <= 16; column += 1) {
+    const xProgress = column / 16;
+    const points = Array.from({ length: 13 }, (_, row) => netPoint(xProgress, row / 12));
+    group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), netMaterial));
+
+    if (column % 3 === 1) {
+      const echoPoints = Array.from({ length: 13 }, (_, row) => netPoint(xProgress + 0.004, row / 12, true));
+      group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(echoPoints), netEchoMaterial));
+    }
   }
-  const net = new THREE.LineSegments(new THREE.BufferGeometry().setAttribute("position", new THREE.Float32BufferAttribute(points, 3)), netMaterial);
-  group.add(net);
+
+  for (let row = 0; row <= 11; row += 1) {
+    const yProgress = row / 11;
+    const points = Array.from({ length: 21 }, (_, column) => netPoint(column / 20, yProgress));
+    group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), netMaterial));
+  }
+
+  for (const side of [left, right]) {
+    for (let row = 1; row < 7; row += 1) {
+      const y = (height * row) / 7;
+      const sideLine = new THREE.Line(
+        new THREE.BufferGeometry().setFromPoints([
+          new THREE.Vector3(side, y, z),
+          new THREE.Vector3(side, y * 0.74, z - depth),
+        ]),
+        netEchoMaterial,
+      );
+      group.add(sideLine);
+    }
+  }
+
+  for (let column = 1; column < 10; column += 1) {
+    const px = left + (width * column) / 10;
+    group.add(new THREE.Line(
+      new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(px, height, z),
+        new THREE.Vector3(px, height * 0.93, z - depth),
+      ]),
+      netEchoMaterial,
+    ));
+  }
 }
 
 export function HeroMap() {
@@ -345,11 +421,11 @@ export function HeroMap() {
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     const pointer = { x: 0, y: 0 };
     let frame = 0;
-    const ballPosition = new THREE.Vector3(3.36, 1.43, -3.36);
+    const ballPosition = new THREE.Vector3(3.7, 1.63, -3.36);
 
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
     renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.shadowMap.type = THREE.PCFShadowMap;
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.domElement.className = "h-full w-full";
     host.appendChild(renderer.domElement);
@@ -376,22 +452,22 @@ export function HeroMap() {
     addMarking(rig, 14.2, 0.022, 0.65, 0);
     addMarking(rig, 0.022, 1.8, 2.65, -4.17);
 
-    const centerCircle = new THREE.Mesh(new THREE.RingGeometry(0.84, 0.88, 72), makeStandard(0x2b2925, 0.72));
+    const centerCircle = new THREE.Mesh(new THREE.RingGeometry(1.1, 1.15, 96), makeStandard(0x2b2925, 0.72));
     centerCircle.rotation.x = -Math.PI / 2;
-    centerCircle.position.set(0.65, 0.022, 0);
+    centerCircle.position.set(-0.05, 0.022, -1.25);
     rig.add(centerCircle);
 
     addGoal(rig);
 
-    const backWall = new THREE.Mesh(new THREE.PlaneGeometry(10, 3.4), makeStandard(0xd8d7d0, 0.9));
-    backWall.position.set(2.65, 1.7, -5.5);
+    const backWall = new THREE.Mesh(new THREE.PlaneGeometry(14.2, 4.05), makeStandard(0xe4e2dc, 0.92));
+    backWall.position.set(1, 2.02, -5.56);
     rig.add(backWall);
 
-    const hatchMaterial = new THREE.LineBasicMaterial({ color: 0x171613, transparent: true, opacity: 0.11 });
+    const hatchMaterial = new THREE.LineBasicMaterial({ color: 0x34322e, transparent: true, opacity: 0.14 });
     const hatchPoints: number[] = [];
-    for (let i = 0; i < 42; i += 1) {
-      const x = -2.2 + i * 0.16;
-      hatchPoints.push(x, 0.2, -5.47, x + 2.9, 3.2, -5.47);
+    for (let i = 0; i < 90; i += 1) {
+      const x = -6 + i * 0.17;
+      hatchPoints.push(x, 0.05, -5.53, x + 3.85, 4.02, -5.53);
     }
     rig.add(new THREE.LineSegments(new THREE.BufferGeometry().setAttribute("position", new THREE.Float32BufferAttribute(hatchPoints, 3)), hatchMaterial));
 
@@ -411,10 +487,12 @@ export function HeroMap() {
     const shotTrail = createReferenceTrail(ballPosition);
     rig.add(shotTrail);
 
-    const { football: ball } = createFootball(0.351, ballMatcapTexture);
+    const { football: ball } = createFootball(0.4, ballMatcapTexture);
     ball.position.copy(ballPosition);
     ball.rotation.set(-0.18, 0.5, -0.08);
     rig.add(ball);
+    const animationStart = performance.now();
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
     scene.add(new THREE.HemisphereLight(0xffffff, 0x5c5750, 1.85));
     const keyLight = new THREE.DirectionalLight(0xffffff, 3.2);
@@ -431,7 +509,7 @@ export function HeroMap() {
     warmLight.position.set(-2, 2.2, 1.4);
     scene.add(warmLight);
 
-    rig.position.set(2.1, -0.85, -0.75);
+    rig.position.set(-0.5, -0.95, 1.2);
     rig.rotation.set(-0.08, -0.23, 0);
     camera.position.set(4.3, 2.95, 7.55);
     camera.lookAt(2.35, 0.72, -2.25);
@@ -449,11 +527,11 @@ export function HeroMap() {
         rig.scale.setScalar(0.76);
         rig.position.set(1.2, 1.45, -1.75);
       } else if (width < 1024) {
-        rig.scale.setScalar(0.88);
-        rig.position.set(1.45, -0.25, -1.25);
+        rig.scale.setScalar(1.05);
+        rig.position.set(0.85, -0.65, -0.15);
       } else {
-        rig.scale.setScalar(1);
-        rig.position.set(2.1, -0.85, -0.75);
+        rig.scale.setScalar(1.45);
+        rig.position.set(-0.5, -0.95, 1.2);
       }
 
       camera.updateProjectionMatrix();
@@ -466,6 +544,11 @@ export function HeroMap() {
     }
 
     function animate() {
+      if (!prefersReducedMotion) {
+        const elapsed = (performance.now() - animationStart) * 0.001;
+        ball.rotation.x = -0.18 + elapsed * 0.015;
+        ball.rotation.y = 0.5 + elapsed * 0.07;
+      }
       rig.rotation.y += (-0.23 + pointer.x * 0.035 - rig.rotation.y) * 0.055;
       rig.rotation.x += (-0.08 + pointer.y * 0.018 - rig.rotation.x) * 0.055;
       renderer.render(scene, camera);
