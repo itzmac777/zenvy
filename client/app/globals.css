@@ -18,6 +18,7 @@ html {
 }
 
 body {
+  --font-currency-symbol: var(--font-noto-serif-bengali), Georgia, "Times New Roman", serif;
   min-height: 100vh;
   margin: 0;
   background:
@@ -38,6 +39,13 @@ body {
 
 .scrollbar-none::-webkit-scrollbar {
   display: none;
+}
+
+.bdt-symbol {
+  margin-inline-end: 0.08em;
+  font-family: var(--font-currency-symbol);
+  font-weight: 500;
+  line-height: 1;
 }
 
 .benefit-marquee {

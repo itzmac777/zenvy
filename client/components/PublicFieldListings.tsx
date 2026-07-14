@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { BdtAmount } from "@/components/BdtAmount";
 import { Icon } from "@/components/Icon";
 import type { PublicField } from "@/lib/api";
 
@@ -21,7 +22,7 @@ function searchableText(field: PublicField) {
 }
 
 function compactPrice(price: string) {
-  return price.replace(/^BDT\s*/i, "৳").replace("/hr", "/h");
+  return price.replace(/^BDT\s*/i, "").replace("/hr", "/h");
 }
 
 export function PublicFieldListings({ fields }: { fields: PublicField[] }) {
@@ -85,7 +86,7 @@ export function PublicFieldListings({ fields }: { fields: PublicField[] }) {
                   <span className="tracking-normal text-muted">{field.rating}{field.ratingCount ? ` (${field.ratingCount})` : " · New"}</span>
                 </div>
                 <div className="mt-2 flex items-center justify-between gap-2 text-[13px] md:text-sm">
-                  <strong className="whitespace-nowrap text-[13px] leading-none sm:text-[15px] md:text-[18px]" aria-label={field.price}>{compactPrice(field.price)}</strong>
+                  <strong className="whitespace-nowrap text-[13px] leading-none sm:text-[15px] md:text-[18px]"><BdtAmount value={compactPrice(field.price)} /></strong>
                   <span className="inline-flex min-h-5 items-center whitespace-nowrap rounded-full bg-[#eee8dd] px-2 text-[9px] font-bold text-muted">{field.terms}</span>
                 </div>
                 <Link href={`/turfs/${field.slug}#booking`} className="mt-3 inline-flex min-h-10 w-full items-center justify-center gap-2 border border-olive bg-olive px-3 text-xs font-bold text-white transition hover:bg-olive-dark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-olive">
