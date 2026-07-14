@@ -42,6 +42,7 @@ type BookingLike = BookingRecord & { _id: unknown };
 const app = express();
 const asyncRoute = (handler: (request: Request, response: Response, next: NextFunction) => Promise<void>): RequestHandler =>
   (request, response, next) => void handler(request, response, next).catch(next);
+const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 const timeSchema = z.string().regex(/^([01]\d|2[0-3]):(00|30)$/);
 const scheduleDaySchema = z.object({
@@ -669,14 +670,15 @@ app.get("/api/bookings/search", asyncRoute(async (request, response) => {
   }
   const bookings = await BookingModel.find({
     ...(phone ? { customerPhone: phone } : {}),
-    ...(invoice ? { invoiceNumber: new RegExp(invoice, "i") } : {}),
+    ...(invoice ? { invoiceNumber: new RegExp(escapeRegExp(invoice), "i") } : {}),
   }).sort({ createdAt: -1 }).limit(50).lean() as BookingLike[];
   const fields = await FieldModel.find({ _id: { $in: [...new Set(bookings.map((booking) => String(booking.fieldId)))] } }).lean() as FieldLike[];
   const fieldById = new Map(fields.map((field) => [String(field._id), field]));
-  response.json({ bookings: bookings.flatMap((booking) => {
+  const serializedBookings = bookings.flatMap((booking) => {
     const field = fieldById.get(String(booking.fieldId));
     return field ? [serializeBooking(booking, field)] : [];
-  }) });
+  });
+  response.json({ bookings: serializedBookings, results: serializedBookings });
 }));
 
 app.get("/api/bookings/:invoiceNumber", asyncRoute(async (request, response) => {

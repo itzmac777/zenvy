@@ -20,12 +20,13 @@ export function BookingInquiryClient() {
 
     try {
       const response = await fetch(`${apiBaseUrl}/api/bookings/search?query=${encodeURIComponent(trimmedQuery)}`);
-      const data = (await response.json()) as { results?: PublicBooking[]; message?: string };
+      const data = (await response.json()) as { bookings?: PublicBooking[]; results?: PublicBooking[]; message?: string };
 
       if (!response.ok) throw new Error(data.message ?? "Unable to search bookings.");
 
-      setResults(data.results ?? []);
-      setMessage(data.results?.length ? "" : "No booking found for that invoice or contact number.");
+      const bookings = data.bookings ?? data.results ?? [];
+      setResults(bookings);
+      setMessage(bookings.length ? "" : "No booking found for that invoice or contact number.");
     } catch (error) {
       setResults([]);
       setMessage(error instanceof Error ? error.message : "Unable to search bookings.");

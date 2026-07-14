@@ -5,10 +5,6 @@ import { MobileMenu } from "@/components/MobileMenu";
 
 const marketingLinks = [
   { label: "Turfs", href: "/#turfs" },
-  { label: "Slots", href: "/#slots" },
-  { label: "Leagues", href: "/#leagues" },
-  { label: "Amenities", href: "/#amenities" },
-  { label: "Teams", href: "/#teams" },
   { label: "Bookings", href: "/booking/inquiry" },
 ];
 
@@ -18,7 +14,7 @@ type MarketingHeaderProps = {
 
 export function MarketingHeader({ showAnnouncement = true }: MarketingHeaderProps) {
   return (
-    <header className="sticky top-0 z-30 border-b border-line/80 bg-paper/95 backdrop-blur-xl">
+    <header className="relative z-30 border-b border-line/80 bg-paper/95 backdrop-blur-xl">
       {showAnnouncement ? (
         <div className="grid min-h-[34px] place-items-center bg-gradient-to-r from-[#efe7db] via-[#f7f2ea] to-[#eee5d8] px-5 py-2 text-center text-[11px] text-[#25231f] md:min-h-[46px] md:text-sm">
           Book indoor football turfs for adult games, leagues, and team nights.
