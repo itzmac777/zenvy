@@ -14,7 +14,7 @@ module.exports = {
         sand: "#efe9df",
       },
       fontFamily: {
-        serif: ["Georgia", "Times New Roman", "serif"],
+        serif: ["var(--font-arpona)", "Times New Roman", "serif"],
         sans: ["var(--font-dm-sans)", "DM Sans", "ui-sans-serif", "system-ui", "sans-serif"],
       },
       boxShadow: {

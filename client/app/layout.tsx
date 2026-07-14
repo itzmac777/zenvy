@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { DM_Sans, Noto_Serif_Bengali } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 
 const dmSans = DM_Sans({
@@ -15,6 +16,13 @@ const bdtSerif = Noto_Serif_Bengali({
   display: "swap",
 });
 
+const arpona = localFont({
+  src: "../fonts/arpona/ArponaLight.otf",
+  variable: "--font-arpona",
+  weight: "300",
+  display: "swap",
+});
+
 export const metadata: Metadata = {
   title: "Zenvy",
   description: "A refined indoor football turf booking platform for adult players and field owners.",
@@ -26,7 +34,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body className={`${dmSans.variable} ${bdtSerif.variable} font-sans antialiased`}>{children}</body>
+      <body className={`${dmSans.variable} ${bdtSerif.variable} ${arpona.variable} font-sans antialiased`}>{children}</body>
     </html>
   );
 }

@@ -18,7 +18,7 @@ html {
 }
 
 body {
-  --font-currency-symbol: var(--font-noto-serif-bengali), Georgia, "Times New Roman", serif;
+  --font-currency-symbol: var(--font-noto-serif-bengali), "Noto Serif Bengali", "Times New Roman", serif;
   min-height: 100vh;
   margin: 0;
   background:
