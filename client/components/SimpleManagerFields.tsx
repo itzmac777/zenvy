@@ -10,6 +10,13 @@ import { useManagerWorkspace } from "@/components/ManagerShell";
 import { managerApi, type FieldDetail } from "@/lib/manager-api";
 import { formatManagerTaka, managerErrorText } from "@/lib/manager-ui";
 
+function fieldPriceLabel(field: FieldDetail) {
+  if (field.pricing.mode === "DAY_NIGHT") {
+    return `${formatManagerTaka(field.pricing.dayRateBdt ?? field.pricing.baseRateBdt)} / ${formatManagerTaka(field.pricing.nightRateBdt ?? field.pricing.baseRateBdt)}`;
+  }
+  return formatManagerTaka(field.pricing.baseRateBdt);
+}
+
 export function SimpleManagerFields() {
   const router = useRouter();
   const online = useManagerOnline();
@@ -52,7 +59,7 @@ export function SimpleManagerFields() {
         {fields.map((field, index) => (
           <article key={field.id} className="border border-line bg-white p-3">
             <div className="relative aspect-[16/9] overflow-hidden bg-panel">{field.image ? (index === 0 ? <Image src={field.image} alt={field.name} width={1200} height={675} priority unoptimized className="h-full w-full object-cover" /> : <Image src={field.image} alt={field.name} width={1200} height={675} unoptimized className="h-full w-full object-cover" />) : <span className="grid h-full place-items-center"><Camera className="h-12 w-12 text-muted" /></span>}<span className={`absolute left-3 top-3 border px-3 py-2 text-xs font-extrabold ${field.status === "PUBLISHED" ? "border-[#8dc1a3] bg-[#e7f5ec] text-[#185236]" : "border-[#c9c9c5] bg-white text-muted"}`}>{field.status === "PUBLISHED" ? "খোলা" : "বন্ধ"}</span></div>
-            <div className="flex items-center justify-between gap-3 py-4"><div className="min-w-0"><h2 className="truncate text-xl font-extrabold">{field.name}</h2><p className="mt-1 truncate text-sm font-bold text-muted">{field.locationLabel}</p></div><strong className="shrink-0 text-xl">{formatManagerTaka(field.pricing.baseRateBdt)}</strong></div>
+            <div className="flex items-center justify-between gap-3 py-4"><div className="min-w-0"><h2 className="truncate text-xl font-extrabold">{field.name}</h2><p className="mt-1 truncate text-sm font-bold text-muted">{field.locationLabel}</p></div><strong className="shrink-0 text-right text-lg leading-tight">{fieldPriceLabel(field)}<span className="block text-[10px] font-extrabold text-muted">{field.pricing.mode === "DAY_NIGHT" ? "দিন / রাত" : "প্রতি ঘণ্টা"}</span></strong></div>
             <div className="grid grid-cols-2 gap-2">
               <button type="button" onClick={() => availability(field)} className="manager-action-press inline-flex min-h-14 items-center justify-center gap-2 border border-olive bg-olive px-2 font-extrabold text-white"><Goal className="h-5 w-5" /> সময়</button>
               <Link href={`/manager/fields/${field.id}?section=hours`} className="manager-action-press inline-flex min-h-14 items-center justify-center gap-2 border border-line bg-white px-2 font-extrabold"><Clock3 className="h-5 w-5" /> খোলা</Link>

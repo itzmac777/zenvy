@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { type FormEvent, useEffect, useMemo, useState } from "react";
-import { Camera, Check, ChevronLeft, ChevronRight, Clock3, Goal, MapPin, Upload } from "lucide-react";
+import { Camera, Check, ChevronLeft, ChevronRight, Clock3, Goal, MapPin, Moon, Sun, Upload } from "lucide-react";
 import { useManagerOnline } from "@/components/ManagerConnectivity";
 import { useManagerWorkspace } from "@/components/ManagerShell";
 import { managerApi, type FieldDetail } from "@/lib/manager-api";
@@ -28,6 +28,11 @@ type Draft = {
   closesAt: string;
   openDays: number[];
   baseRateBdt: number;
+  pricingMode: "SAME_ALL_DAY" | "DAY_NIGHT";
+  dayRateBdt: number;
+  nightRateBdt: number;
+  dayStart: string;
+  nightStart: string;
   uploaded: boolean;
 };
 
@@ -41,6 +46,11 @@ const initialDraft: Draft = {
   closesAt: "23:00",
   openDays: [0, 1, 2, 3, 4, 5, 6],
   baseRateBdt: 1,
+  pricingMode: "SAME_ALL_DAY",
+  dayRateBdt: 1,
+  nightRateBdt: 1,
+  dayStart: "06:00",
+  nightStart: "18:00",
   uploaded: false,
 };
 
@@ -99,6 +109,11 @@ export function QuickFieldWizard() {
         closesAt: draft.closesAt,
         openDays: draft.openDays,
         baseRateBdt: draft.baseRateBdt,
+        pricingMode: draft.pricingMode,
+        dayRateBdt: draft.pricingMode === "DAY_NIGHT" ? draft.dayRateBdt : null,
+        nightRateBdt: draft.pricingMode === "DAY_NIGHT" ? draft.nightRateBdt : null,
+        dayStart: draft.dayStart,
+        nightStart: draft.nightStart,
       }),
     });
     setDraft((current) => ({ ...current, fieldId: data.field.id }));
@@ -149,7 +164,12 @@ export function QuickFieldWizard() {
     setSaving(true);
     setError("");
     try {
-      await managerApi(`/api/manager/fields/${draft.fieldId}/basic`, { method: "PATCH", body: JSON.stringify({ baseRateBdt: Number(draft.baseRateBdt) }) });
+      await managerApi(`/api/manager/fields/${draft.fieldId}/basic`, {
+        method: "PATCH",
+        body: JSON.stringify(draft.pricingMode === "DAY_NIGHT"
+          ? { pricingMode: draft.pricingMode, baseRateBdt: Number(draft.dayRateBdt), dayRateBdt: Number(draft.dayRateBdt), nightRateBdt: Number(draft.nightRateBdt), dayStart: draft.dayStart, nightStart: draft.nightStart }
+          : { pricingMode: draft.pricingMode, baseRateBdt: Number(draft.baseRateBdt) }),
+      });
       await managerApi(`/api/manager/fields/${draft.fieldId}/status`, { method: "PATCH", body: JSON.stringify({ status: "PUBLISHED" }) });
       window.localStorage.removeItem(draftKey);
       await refresh();
@@ -172,10 +192,10 @@ export function QuickFieldWizard() {
 
         {draft.step === 2 ? <section><span className="mx-auto grid h-20 w-20 place-items-center rounded-full bg-[#e9edff] text-olive"><Clock3 className="h-10 w-10" /></span><h2 className="mt-4 text-center text-2xl font-extrabold">খোলার সময়</h2><div className="mt-5 grid grid-cols-2 gap-3"><label className="text-sm font-extrabold">খোলে<input required type="time" step="1800" value={draft.opensAt} onChange={(event) => setDraft({ ...draft, opensAt: event.target.value })} className="mt-2 min-h-16 w-full border-2 border-line bg-white px-3 text-lg font-extrabold" /></label><label className="text-sm font-extrabold">বন্ধ হয়<input required type="time" step="1800" value={draft.closesAt} onChange={(event) => setDraft({ ...draft, closesAt: event.target.value })} className="mt-2 min-h-16 w-full border-2 border-line bg-white px-3 text-lg font-extrabold" /></label></div><p className="mt-5 text-sm font-extrabold">খোলা দিন</p><div className="mt-2 grid grid-cols-4 gap-2 sm:grid-cols-7">{days.map((day, index) => { const open = draft.openDays.includes(index); return <button key={day} type="button" onClick={() => setDraft({ ...draft, openDays: open ? draft.openDays.filter((value) => value !== index) : [...draft.openDays, index].sort() })} className={`manager-action-press min-h-[56px] border font-extrabold ${open ? "border-olive bg-olive text-white" : "border-line bg-panel text-muted"}`}>{day}</button>; })}</div></section> : null}
 
-        {draft.step === 3 ? <section><span className="mx-auto grid h-20 w-20 place-items-center rounded-full bg-[#e9edff] text-3xl font-extrabold text-olive">৳</span><h2 className="mt-4 text-center text-2xl font-extrabold">ঘণ্টার দাম</h2><label className="mt-5 block text-sm font-extrabold">প্রতি ঘণ্টা<input required autoFocus type="number" min="1" value={draft.baseRateBdt} onChange={(event) => setDraft({ ...draft, baseRateBdt: Number(event.target.value) })} className="mt-2 min-h-16 w-full border-2 border-line bg-white px-4 text-3xl font-extrabold outline-none focus:border-olive" /></label><dl className="mt-5 grid gap-px bg-line"><div className="flex justify-between bg-white p-4"><dt className="text-muted">মাঠ</dt><dd className="font-extrabold">{draft.name}</dd></div><div className="flex justify-between bg-white p-4"><dt className="text-muted">এলাকা</dt><dd className="font-extrabold">{draft.locationLabel}</dd></div><div className="flex justify-between bg-white p-4"><dt className="text-muted">সময়</dt><dd className="font-extrabold">{draft.opensAt} – {draft.closesAt}</dd></div><div className="flex justify-between bg-white p-4"><dt className="text-muted">দাম</dt><dd className="text-xl font-extrabold">{formatManagerTaka(draft.baseRateBdt)}</dd></div></dl></section> : null}
+        {draft.step === 3 ? <section><span className="mx-auto grid h-20 w-20 place-items-center rounded-full bg-[#e9edff] text-3xl font-extrabold text-olive">৳</span><h2 className="mt-4 text-center text-2xl font-extrabold">ঘণ্টার দাম</h2><div className="mt-5 grid grid-cols-2 gap-2"><button type="button" onClick={() => setDraft({ ...draft, pricingMode: "SAME_ALL_DAY" })} className={`manager-action-press min-h-16 border font-extrabold ${draft.pricingMode === "SAME_ALL_DAY" ? "border-olive bg-olive text-white" : "border-line bg-white"}`}>এক দাম</button><button type="button" onClick={() => setDraft({ ...draft, pricingMode: "DAY_NIGHT" })} className={`manager-action-press min-h-16 border font-extrabold ${draft.pricingMode === "DAY_NIGHT" ? "border-olive bg-olive text-white" : "border-line bg-white"}`}>দিন / রাত</button></div>{draft.pricingMode === "SAME_ALL_DAY" ? <label className="mt-5 block text-sm font-extrabold">প্রতি ঘণ্টা<input required autoFocus type="number" min="1" value={draft.baseRateBdt} onChange={(event) => setDraft({ ...draft, baseRateBdt: Number(event.target.value) })} className="mt-2 min-h-16 w-full border-2 border-line bg-white px-4 text-3xl font-extrabold outline-none focus:border-olive" /></label> : <div className="mt-5 grid gap-3"><div className="grid grid-cols-[56px_1fr] items-end gap-3"><span className="grid h-14 w-14 place-items-center rounded-full bg-[#fff7d8] text-[#684f00]"><Sun className="h-7 w-7" /></span><label className="block text-sm font-extrabold">দিনের দাম<input required autoFocus type="number" min="1" value={draft.dayRateBdt} onChange={(event) => setDraft({ ...draft, dayRateBdt: Number(event.target.value) })} className="mt-2 min-h-16 w-full border-2 border-line bg-white px-4 text-3xl font-extrabold outline-none focus:border-olive" /></label></div><div className="grid grid-cols-[56px_1fr] items-end gap-3"><span className="grid h-14 w-14 place-items-center rounded-full bg-[#e9edff] text-olive"><Moon className="h-7 w-7" /></span><label className="block text-sm font-extrabold">রাতের দাম<input required type="number" min="1" value={draft.nightRateBdt} onChange={(event) => setDraft({ ...draft, nightRateBdt: Number(event.target.value) })} className="mt-2 min-h-16 w-full border-2 border-line bg-white px-4 text-3xl font-extrabold outline-none focus:border-olive" /></label></div><details className="border border-line bg-panel p-3"><summary className="min-h-12 cursor-pointer font-extrabold">দিন / রাত সময়</summary><div className="mt-3 grid grid-cols-2 gap-3"><label className="text-xs font-extrabold text-muted">দিন শুরু<input type="time" step="1800" value={draft.dayStart} onChange={(event) => setDraft({ ...draft, dayStart: event.target.value })} className="mt-2 min-h-14 w-full border border-line bg-white px-3 text-base font-extrabold text-ink" /></label><label className="text-xs font-extrabold text-muted">রাত শুরু<input type="time" step="1800" value={draft.nightStart} onChange={(event) => setDraft({ ...draft, nightStart: event.target.value })} className="mt-2 min-h-14 w-full border border-line bg-white px-3 text-base font-extrabold text-ink" /></label></div></details></div>}<dl className="mt-5 grid gap-px bg-line"><div className="flex justify-between bg-white p-4"><dt className="text-muted">মাঠ</dt><dd className="font-extrabold">{draft.name}</dd></div><div className="flex justify-between bg-white p-4"><dt className="text-muted">এলাকা</dt><dd className="font-extrabold">{draft.locationLabel}</dd></div><div className="flex justify-between bg-white p-4"><dt className="text-muted">সময়</dt><dd className="font-extrabold">{draft.opensAt} – {draft.closesAt}</dd></div><div className="flex justify-between bg-white p-4"><dt className="text-muted">দাম</dt><dd className="text-xl font-extrabold">{draft.pricingMode === "DAY_NIGHT" ? `${formatManagerTaka(draft.dayRateBdt)} / ${formatManagerTaka(draft.nightRateBdt)}` : formatManagerTaka(draft.baseRateBdt)}</dd></div></dl></section> : null}
 
         {error ? <p role="alert" className="mt-4 border border-red-200 bg-red-50 p-3 font-extrabold text-red-700">{error}</p> : null}
-        {draft.step < 3 ? <button disabled={!online || saving || (draft.step === 2 && draft.openDays.length === 0)} className="manager-action-press mt-6 inline-flex min-h-14 w-full items-center justify-center gap-2 border border-olive bg-olive text-base font-extrabold text-white disabled:opacity-40">{saving ? "..." : "পরের"}<ChevronRight className="h-6 w-6" /></button> : <button type="button" disabled={!online || saving || draft.baseRateBdt < 1} onClick={() => void publish()} className="manager-action-press mt-6 inline-flex min-h-14 w-full items-center justify-center gap-2 border border-olive bg-olive text-base font-extrabold text-white disabled:opacity-40">{saving ? "..." : "প্রকাশ করুন"}<Check className="h-6 w-6" /></button>}
+        {draft.step < 3 ? <button disabled={!online || saving || (draft.step === 2 && draft.openDays.length === 0)} className="manager-action-press mt-6 inline-flex min-h-14 w-full items-center justify-center gap-2 border border-olive bg-olive text-base font-extrabold text-white disabled:opacity-40">{saving ? "..." : "পরের"}<ChevronRight className="h-6 w-6" /></button> : <button type="button" disabled={!online || saving || (draft.pricingMode === "DAY_NIGHT" ? draft.dayRateBdt < 1 || draft.nightRateBdt < 1 : draft.baseRateBdt < 1)} onClick={() => void publish()} className="manager-action-press mt-6 inline-flex min-h-14 w-full items-center justify-center gap-2 border border-olive bg-olive text-base font-extrabold text-white disabled:opacity-40">{saving ? "..." : "প্রকাশ করুন"}<Check className="h-6 w-6" /></button>}
         {draft.step > 0 ? <button type="button" onClick={() => setDraft((current) => ({ ...current, step: current.step - 1 }))} className="mt-2 inline-flex min-h-[52px] w-full items-center justify-center gap-2 font-extrabold text-muted"><ChevronLeft className="h-5 w-5" /> পেছনে</button> : null}
       </form>
     </main>

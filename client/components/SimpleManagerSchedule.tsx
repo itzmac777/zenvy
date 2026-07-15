@@ -139,6 +139,15 @@ export function SimpleManagerSchedule() {
   }, [fields.length, searchParams]);
 
   const selectedDay = availability?.days.find((day) => day.date === selectedDate) ?? availability?.days[0];
+  const dayStats = useMemo(() => {
+    const slots = selectedDay?.slots ?? [];
+    return {
+      open: slots.filter((slot) => slot.status === "AVAILABLE").length,
+      booked: slots.filter((slot) => slot.status === "BOOKED" || slot.status === "MANUAL_BOOKED").length,
+      due: slots.filter((slot) => (slot.occupancy?.booking?.balanceAmountBdt ?? 0) > 0).length,
+      closed: slots.filter((slot) => slot.status === "CLOSED" || slot.status === "BLOCKED").length,
+    };
+  }, [selectedDay]);
   const emptySlot = sheet?.kind === "empty" ? sheet.slot : null;
   const emptyIndex = emptySlot ? selectedDay?.slots.findIndex((slot) => slot.startAt === emptySlot.startAt) ?? -1 : -1;
   const durationOptions = useMemo(() => [1, 2, 3, 4].map((hours) => ({
@@ -310,6 +319,19 @@ export function SimpleManagerSchedule() {
         <div><p className="text-xs font-bold text-muted">{dayMeta(selectedDate).long}</p><h1 className="mt-1 text-3xl font-extrabold">{managerCopy.today}</h1></div>
         <button type="button" onClick={() => void load()} aria-label="Refresh" className="grid h-14 w-14 place-items-center border border-line bg-white"><RefreshCw className={`h-6 w-6 ${loading ? "animate-spin" : ""}`} /></button>
       </header>
+
+      <section className="mt-4 border border-line bg-[#fffefd] p-4 shadow-soft">
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0"><p className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-muted">আজকের মাঠ</p><h2 className="mt-1 truncate text-2xl font-extrabold">{selectedField?.name}</h2></div>
+          <Link href="/manager/fields" className="shrink-0 border border-line bg-panel px-3 py-2 text-xs font-extrabold text-muted">মাঠ বদলান</Link>
+        </div>
+        <div className="mt-4 grid grid-cols-4 gap-2">
+          <div className="border border-[#a9cdb8] bg-[#edf8f1] p-3 text-center"><strong className="block text-2xl">{dayStats.open}</strong><span className="text-[11px] font-extrabold text-[#194f35]">খালি</span></div>
+          <div className="border border-[#9aaaf5] bg-[#e9edff] p-3 text-center"><strong className="block text-2xl">{dayStats.booked}</strong><span className="text-[11px] font-extrabold text-[#263786]">বুকিং</span></div>
+          <div className="border border-[#dda26e] bg-[#fff0e2] p-3 text-center"><strong className="block text-2xl">{dayStats.due}</strong><span className="text-[11px] font-extrabold text-[#713d16]">বাকি</span></div>
+          <div className="border border-line bg-[#ecece8] p-3 text-center"><strong className="block text-2xl">{dayStats.closed}</strong><span className="text-[11px] font-extrabold text-muted">বন্ধ</span></div>
+        </div>
+      </section>
 
       <div className="-mx-3 mt-4 flex gap-2 overflow-x-auto px-3 pb-1 sm:-mx-5 sm:px-5 md:hidden">
         {fields.map((field) => <button key={field.id} type="button" onClick={() => setSelectedFieldId(field.id)} className={`min-h-[52px] shrink-0 border px-5 text-sm font-extrabold ${selectedField?.id === field.id ? "border-olive bg-olive text-white" : "border-line bg-white"}`}>{field.name}</button>)}

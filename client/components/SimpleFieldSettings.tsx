@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { type FormEvent, useCallback, useEffect, useMemo, useState } from "react";
-import { Camera, Check, ChevronLeft, Clock3, Goal, ImagePlus, Pause, Play, Settings2 } from "lucide-react";
+import { Camera, Check, ChevronLeft, Clock3, Goal, ImagePlus, Moon, Pause, Play, Settings2, Sun } from "lucide-react";
 import { useManagerOnline } from "@/components/ManagerConnectivity";
 import { useManagerWorkspace } from "@/components/ManagerShell";
 import { managerApi, type FieldDetail } from "@/lib/manager-api";
@@ -27,6 +27,11 @@ export function SimpleFieldSettings({ fieldId }: { fieldId: string }) {
   const [closesAt, setClosesAt] = useState("23:00");
   const [openDays, setOpenDays] = useState<number[]>([]);
   const [baseRateBdt, setBaseRateBdt] = useState(1);
+  const [pricingMode, setPricingMode] = useState<"SAME_ALL_DAY" | "DAY_NIGHT">("SAME_ALL_DAY");
+  const [dayRateBdt, setDayRateBdt] = useState(1);
+  const [nightRateBdt, setNightRateBdt] = useState(1);
+  const [dayStart, setDayStart] = useState("06:00");
+  const [nightStart, setNightStart] = useState("18:00");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -41,6 +46,11 @@ export function SimpleFieldSettings({ fieldId }: { fieldId: string }) {
       setLocationLabel(item.locationLabel);
       setFormat(item.format);
       setBaseRateBdt(item.pricing.baseRateBdt);
+      setPricingMode(item.pricing.mode === "DAY_NIGHT" ? "DAY_NIGHT" : "SAME_ALL_DAY");
+      setDayRateBdt(item.pricing.dayRateBdt ?? item.pricing.baseRateBdt);
+      setNightRateBdt(item.pricing.nightRateBdt ?? item.pricing.baseRateBdt);
+      setDayStart(item.pricing.dayStart ?? "06:00");
+      setNightStart(item.pricing.nightStart ?? "18:00");
       const firstOpen = item.weeklyHours.find((day) => !day.isClosed);
       setOpensAt(firstOpen?.opensAt ?? "08:00");
       setClosesAt(firstOpen?.closesAt ?? "23:00");
@@ -71,7 +81,14 @@ export function SimpleFieldSettings({ fieldId }: { fieldId: string }) {
         }
       }
       if (section === "hours") await managerApi(`/api/manager/fields/${field.id}/basic`, { method: "PATCH", body: JSON.stringify({ opensAt, closesAt, openDays }) });
-      if (section === "price") await managerApi(`/api/manager/fields/${field.id}/basic`, { method: "PATCH", body: JSON.stringify({ baseRateBdt: Number(baseRateBdt) }) });
+      if (section === "price") {
+        await managerApi(`/api/manager/fields/${field.id}/basic`, {
+          method: "PATCH",
+          body: JSON.stringify(pricingMode === "DAY_NIGHT"
+            ? { pricingMode, baseRateBdt: Number(dayRateBdt), dayRateBdt: Number(dayRateBdt), nightRateBdt: Number(nightRateBdt), dayStart, nightStart }
+            : { pricingMode, baseRateBdt: Number(baseRateBdt) }),
+        });
+      }
       setNotice("সেভ হয়েছে");
       await Promise.all([load(), refresh()]);
     } catch (requestError) { setError(managerErrorText(requestError)); } finally { setSaving(false); }
@@ -97,7 +114,7 @@ export function SimpleFieldSettings({ fieldId }: { fieldId: string }) {
       <form onSubmit={save} className="mt-3 border border-line bg-white p-4 sm:p-6">
         {section === "identity" ? <><h1 className="text-2xl font-extrabold">ছবি ও নাম</h1><label className="relative mt-5 block aspect-[16/9] cursor-pointer overflow-hidden border-2 border-dashed border-line bg-panel">{preview ? <Image src={preview} alt="Field" fill unoptimized className="object-cover" /> : <span className="grid h-full place-items-center"><ImagePlus className="h-12 w-12 text-muted" /></span>}<input type="file" accept="image/*" capture="environment" onChange={(event) => setImageFile(event.target.files?.[0] ?? null)} className="sr-only" /></label><label className="mt-4 block text-sm font-extrabold">নাম<input required value={name} onChange={(event) => setName(event.target.value)} className="mt-2 min-h-14 w-full border-2 border-line px-4 text-xl font-extrabold" /></label><label className="mt-4 block text-sm font-extrabold">এলাকা<input required value={locationLabel} onChange={(event) => setLocationLabel(event.target.value)} className="mt-2 min-h-14 w-full border-2 border-line px-4 text-lg font-extrabold" /></label><div className="mt-4 grid grid-cols-2 gap-2">{["5-a-side", "6-a-side", "7-a-side", "Futsal"].map((value) => <button key={value} type="button" onClick={() => setFormat(value)} className={`min-h-14 border font-extrabold ${format === value ? "border-olive bg-olive text-white" : "border-line bg-white"}`}>{value}</button>)}</div></> : null}
         {section === "hours" ? <><h1 className="text-2xl font-extrabold">খোলার সময়</h1><div className="mt-5 grid grid-cols-2 gap-3"><label className="text-sm font-extrabold">খোলে<input required type="time" step="1800" value={opensAt} onChange={(event) => setOpensAt(event.target.value)} className="mt-2 min-h-16 w-full border-2 border-line px-3 text-lg font-extrabold" /></label><label className="text-sm font-extrabold">বন্ধ হয়<input required type="time" step="1800" value={closesAt} onChange={(event) => setClosesAt(event.target.value)} className="mt-2 min-h-16 w-full border-2 border-line px-3 text-lg font-extrabold" /></label></div><p className="mt-5 text-sm font-extrabold">খোলা দিন</p><div className="mt-2 grid grid-cols-4 gap-2 sm:grid-cols-7">{days.map((day, index) => { const open = openDays.includes(index); return <button key={day} type="button" onClick={() => setOpenDays(open ? openDays.filter((value) => value !== index) : [...openDays, index].sort())} className={`min-h-[56px] border font-extrabold ${open ? "border-olive bg-olive text-white" : "border-line bg-panel text-muted"}`}>{day}</button>; })}</div></> : null}
-        {section === "price" ? <><h1 className="text-2xl font-extrabold">ঘণ্টার দাম</h1><label className="mt-5 block text-sm font-extrabold">প্রতি ঘণ্টা<input required type="number" min="1" value={baseRateBdt} onChange={(event) => setBaseRateBdt(Number(event.target.value))} className="mt-2 min-h-20 w-full border-2 border-line px-4 text-4xl font-extrabold" /></label><div className="mt-4 border border-line bg-panel p-4"><span className="font-bold text-muted">এখন</span><strong className="float-right text-2xl">{formatManagerTaka(field.pricing.baseRateBdt)}</strong></div></> : null}
+        {section === "price" ? <><h1 className="text-2xl font-extrabold">ঘণ্টার দাম</h1><div className="mt-5 grid grid-cols-2 gap-2"><button type="button" onClick={() => setPricingMode("SAME_ALL_DAY")} className={`manager-action-press min-h-16 border p-3 font-extrabold ${pricingMode === "SAME_ALL_DAY" ? "border-olive bg-olive text-white" : "border-line bg-white"}`}>এক দাম</button><button type="button" onClick={() => setPricingMode("DAY_NIGHT")} className={`manager-action-press min-h-16 border p-3 font-extrabold ${pricingMode === "DAY_NIGHT" ? "border-olive bg-olive text-white" : "border-line bg-white"}`}>দিন / রাত</button></div>{pricingMode === "SAME_ALL_DAY" ? <label className="mt-5 block text-sm font-extrabold">প্রতি ঘণ্টা<input required type="number" min="1" value={baseRateBdt} onChange={(event) => setBaseRateBdt(Number(event.target.value))} className="mt-2 min-h-20 w-full border-2 border-line px-4 text-4xl font-extrabold" /></label> : <div className="mt-5 grid gap-3"><div className="grid grid-cols-[56px_1fr] items-end gap-3"><span className="grid h-14 w-14 place-items-center rounded-full bg-[#fff7d8] text-[#684f00]"><Sun className="h-7 w-7" /></span><label className="block text-sm font-extrabold">দিনের দাম<input required type="number" min="1" value={dayRateBdt} onChange={(event) => setDayRateBdt(Number(event.target.value))} className="mt-2 min-h-16 w-full border-2 border-line px-4 text-3xl font-extrabold" /></label></div><div className="grid grid-cols-[56px_1fr] items-end gap-3"><span className="grid h-14 w-14 place-items-center rounded-full bg-[#e9edff] text-olive"><Moon className="h-7 w-7" /></span><label className="block text-sm font-extrabold">রাতের দাম<input required type="number" min="1" value={nightRateBdt} onChange={(event) => setNightRateBdt(Number(event.target.value))} className="mt-2 min-h-16 w-full border-2 border-line px-4 text-3xl font-extrabold" /></label></div><details className="border border-line bg-panel p-3"><summary className="min-h-12 cursor-pointer font-extrabold">দিন / রাত সময়</summary><div className="mt-3 grid grid-cols-2 gap-3"><label className="text-xs font-extrabold text-muted">দিন শুরু<input type="time" step="1800" value={dayStart} onChange={(event) => setDayStart(event.target.value)} className="mt-2 min-h-14 w-full border border-line bg-white px-3 text-base font-extrabold text-ink" /></label><label className="text-xs font-extrabold text-muted">রাত শুরু<input type="time" step="1800" value={nightStart} onChange={(event) => setNightStart(event.target.value)} className="mt-2 min-h-14 w-full border border-line bg-white px-3 text-base font-extrabold text-ink" /></label></div></details></div>}<div className="mt-4 border border-line bg-panel p-4"><span className="font-bold text-muted">এখন</span><strong className="float-right text-2xl">{field.pricing.mode === "DAY_NIGHT" ? `${formatManagerTaka(field.pricing.dayRateBdt ?? field.pricing.baseRateBdt)} / ${formatManagerTaka(field.pricing.nightRateBdt ?? field.pricing.baseRateBdt)}` : formatManagerTaka(field.pricing.baseRateBdt)}</strong></div></> : null}
         {notice ? <p role="status" className="mt-4 flex min-h-14 items-center gap-2 border border-[#a9cdb8] bg-[#edf8f1] px-4 font-extrabold text-[#194f35]"><Check className="h-6 w-6" />{notice}</p> : null}
         {error ? <p role="alert" className="mt-4 border border-red-200 bg-red-50 p-3 font-extrabold text-red-700">{error}</p> : null}
         <button disabled={!online || saving || (section === "hours" && !openDays.length)} className="manager-action-press mt-6 min-h-14 w-full border border-olive bg-olive text-base font-extrabold text-white disabled:opacity-40">{saving ? "..." : "সেভ করুন"}</button>

@@ -98,12 +98,20 @@ const quickFieldSchema = z.object({
   openDays: z.array(z.number().int().min(0).max(6)).min(1).max(7)
     .refine((days) => new Set(days).size === days.length, "Open days must be unique."),
   baseRateBdt: z.number().int().min(1).max(1_000_000),
+  pricingMode: z.enum(["SAME_ALL_DAY", "DAY_NIGHT"]).default("SAME_ALL_DAY"),
+  dayStart: timeSchema.default("06:00"),
+  nightStart: timeSchema.default("18:00"),
+  dayRateBdt: z.number().int().min(1).max(1_000_000).nullable().optional(),
+  nightRateBdt: z.number().int().min(1).max(1_000_000).nullable().optional(),
 });
 
 const basicFieldPatchSchema = quickFieldSchema.partial().superRefine((value, context) => {
   const scheduleValues = [value.opensAt, value.closesAt, value.openDays].filter((item) => item !== undefined);
   if (scheduleValues.length > 0 && scheduleValues.length < 3) {
     context.addIssue({ code: "custom", message: "Opening time, closing time, and open days must be updated together." });
+  }
+  if (value.pricingMode === "DAY_NIGHT" && (value.dayRateBdt == null || value.nightRateBdt == null)) {
+    context.addIssue({ code: "custom", message: "Day and night rates are required." });
   }
 });
 
@@ -350,11 +358,11 @@ app.post("/api/manager/fields", asyncRoute(requireManager), asyncRoute(async (re
       minLeadMinutes: 60,
       reschedulePolicy: "Free reschedule up to 12 hours before kickoff.",
       baseRateBdt: input.baseRateBdt,
-      pricingMode: "SAME_ALL_DAY",
-      dayStart: "06:00",
-      nightStart: "18:00",
-      dayRateBdt: null,
-      nightRateBdt: null,
+      pricingMode: input.pricingMode,
+      dayStart: input.dayStart,
+      nightStart: input.nightStart,
+      dayRateBdt: input.pricingMode === "DAY_NIGHT" ? input.dayRateBdt ?? input.baseRateBdt : null,
+      nightRateBdt: input.pricingMode === "DAY_NIGHT" ? input.nightRateBdt ?? input.baseRateBdt : null,
       status: "DRAFT",
       images: [],
       weeklyHours: weeklyHoursFromQuick(input),
@@ -492,11 +500,20 @@ app.patch("/api/manager/fields/:fieldId/basic", asyncRoute(requireManager), asyn
   }
   if (input.baseRateBdt !== undefined) {
     updates.baseRateBdt = input.baseRateBdt;
-    updates.pricingMode = "SAME_ALL_DAY";
-    updates.dayRateBdt = null;
-    updates.nightRateBdt = null;
     updates.pricingRules = [];
   }
+  if (input.pricingMode !== undefined) {
+    updates.pricingMode = input.pricingMode;
+    updates.pricingRules = [];
+    if (input.pricingMode === "SAME_ALL_DAY") {
+      updates.dayRateBdt = null;
+      updates.nightRateBdt = null;
+    }
+  }
+  if (input.dayStart !== undefined) updates.dayStart = input.dayStart;
+  if (input.nightStart !== undefined) updates.nightStart = input.nightStart;
+  if (input.dayRateBdt !== undefined) updates.dayRateBdt = input.dayRateBdt;
+  if (input.nightRateBdt !== undefined) updates.nightRateBdt = input.nightRateBdt;
 
   const field = await FieldModel.findByIdAndUpdate(request.params.fieldId, { $set: updates }, { new: true }).lean() as FieldLike | null;
   await AuditLogModel.create({
