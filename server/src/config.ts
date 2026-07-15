@@ -18,7 +18,7 @@ const bdBulkSmsToken = process.env.BD_BULK_SMS_TOKEN?.trim() ?? "";
 const smsNetBdApiKey = process.env.SMS_NET_BD_API_KEY?.trim() ?? "";
 const requestedSmsProvider = process.env.SMS_PROVIDER?.trim().toLowerCase().replace(/-/g, "_");
 const smsProvider = requestedSmsProvider
-  || (smsNetBdApiKey ? "sms_net_bd" : bdBulkSmsToken ? "bd_bulk_sms" : "development");
+  || (bdBulkSmsToken ? "bd_bulk_sms" : smsNetBdApiKey ? "sms_net_bd" : "development");
 
 export const config = {
   nodeEnv: process.env.NODE_ENV ?? "development",
