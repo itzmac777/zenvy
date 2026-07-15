@@ -52,6 +52,8 @@ services:
       OTP_SECRET: ${OTP_SECRET}
       OTP_DEV_CODE: ${OTP_DEV_CODE:-}
       MANAGER_INVITES_REQUIRED: ${MANAGER_INVITES_REQUIRED:-false}
+      BD_BULK_SMS_TOKEN: ${BD_BULK_SMS_TOKEN:-}
+      BD_BULK_SMS_URL: ${BD_BULK_SMS_URL:-https://api.bdbulksms.net/api.php?json}
       UPLOAD_DIR: /app/server/uploads
       IMAGEKIT_PUBLIC_KEY: ${IMAGEKIT_PUBLIC_KEY:-}
       IMAGEKIT_PRIVATE_KEY: ${IMAGEKIT_PRIVATE_KEY:-}

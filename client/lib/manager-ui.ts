@@ -35,6 +35,7 @@ const managerErrors: Record<string, string> = {
   OTP_INCORRECT: "কোডটি ঠিক নয়",
   OTP_RATE_LIMITED: "একটু পরে চেষ্টা করুন",
   OTP_ATTEMPTS_EXCEEDED: "নতুন কোড নিন",
+  SMS_DELIVERY_FAILED: "কোড পাঠানো যায়নি",
   SESSION_EXPIRED: "আবার লগইন করুন",
   UNAUTHORIZED: "আবার লগইন করুন",
   NETWORK_ERROR: "ইন্টারনেট নেই",

@@ -1,6 +1,7 @@
 import { randomBytes } from "node:crypto";
 import type { NextFunction, Request, Response } from "express";
 import { config } from "./config.js";
+import { sendManagerOtp } from "./sms-provider.js";
 import {
   FieldModel,
   ManagerInvitationModel,
@@ -118,7 +119,14 @@ export async function requestOtp(request: Request, response: Response) {
     invitationId,
     expiresAt: new Date(Date.now() + OTP_TTL_MS),
   });
-  if (config.nodeEnv !== "production") console.log(`[Zenvy OTP] ${phone}: ${code}`);
+  try {
+    await sendManagerOtp(phone, code);
+  } catch (error) {
+    await OtpChallengeModel.deleteOne({ _id: challenge._id });
+    console.error("[Zenvy OTP] SMS delivery failed", error);
+    response.status(502).json({ code: "SMS_DELIVERY_FAILED", message: "Unable to send OTP right now." });
+    return;
+  }
 
   response.json({
     challengeId: String(challenge._id),

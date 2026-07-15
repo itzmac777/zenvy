@@ -14,6 +14,7 @@ const paystationMockFlag = process.env.PAYSTATION_MOCK?.toLowerCase();
 const hasRealPaystationPassword = paystationPassword.trim() !== "" && paystationPassword !== "dummy-paystation-password";
 const serverPublicUrl = process.env.SERVER_PUBLIC_URL ?? `http://localhost:${process.env.PORT ?? 4000}`;
 const imagekitPrivateKey = process.env.IMAGEKIT_PRIVATE_KEY?.trim() ?? "";
+const bdBulkSmsToken = process.env.BD_BULK_SMS_TOKEN?.trim() ?? "";
 
 export const config = {
   nodeEnv: process.env.NODE_ENV ?? "development",
@@ -40,5 +41,11 @@ export const config = {
     password: paystationPassword,
     callbackUrl: process.env.PAYSTATION_CALLBACK_URL ?? "http://localhost:4000/api/payments/paystation/callback",
     mock: paystationMockFlag === "true" || (paystationMockFlag !== "false" && !hasRealPaystationPassword),
+  },
+  sms: {
+    provider: bdBulkSmsToken ? "bd-bulk-sms" : "development",
+    bdBulkSmsToken,
+    bdBulkSmsUrl: process.env.BD_BULK_SMS_URL?.trim() || "https://api.bdbulksms.net/api.php?json",
+    enabled: bdBulkSmsToken.length > 0,
   },
 };

@@ -30,11 +30,14 @@ ACME_EMAIL=you@example.com
 OTP_SECRET=use-a-long-random-secret
 PAYSTATION_STORE_ID=2693-1775830347
 PAYSTATION_PASSWORD=your-paystation-password
+BD_BULK_SMS_TOKEN=your-bd-bulk-sms-token
 IMAGEKIT_PUBLIC_KEY=your-imagekit-public-key
 IMAGEKIT_PRIVATE_KEY=your-imagekit-private-key
 IMAGEKIT_URL_ENDPOINT=https://ik.imagekit.io/your-imagekit-id
 NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT=https://ik.imagekit.io/your-imagekit-id
 ```
+
+For Docker deployments, keep `BD_BULK_SMS_TOKEN` in `infra/.env`. `server/.env` is only read when running the server outside Docker.
 
 4. Start the stack:
 
