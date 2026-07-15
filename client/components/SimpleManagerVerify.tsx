@@ -16,6 +16,7 @@ export function SimpleManagerVerify() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const submittedRef = useRef("");
+  const verifyingRef = useRef(false);
 
   useEffect(() => {
     const stored = window.sessionStorage.getItem("zenvy-manager-otp");
@@ -29,8 +30,9 @@ export function SimpleManagerVerify() {
   }, [seconds]);
 
   const verifyCode = useCallback(async (nextCode: string) => {
-    if (!challenge || nextCode.length !== 6 || loading || submittedRef.current === nextCode) return;
+    if (!challenge || nextCode.length !== 6 || verifyingRef.current || submittedRef.current === nextCode) return;
     submittedRef.current = nextCode;
+    verifyingRef.current = true;
     setLoading(true);
     setError("");
     try {
@@ -39,9 +41,11 @@ export function SimpleManagerVerify() {
       router.replace(session.needsName ? "/manager/onboarding" : session.needsField ? "/manager/fields/new?first=1" : "/manager");
     } catch (requestError) {
       setError(managerErrorText(requestError));
-      submittedRef.current = "";
-    } finally { setLoading(false); }
-  }, [challenge, loading, router]);
+    } finally {
+      verifyingRef.current = false;
+      setLoading(false);
+    }
+  }, [challenge, router]);
 
   useEffect(() => { if (code.length === 6) void verifyCode(code); }, [code, verifyCode]);
   useEffect(() => {
@@ -69,5 +73,5 @@ export function SimpleManagerVerify() {
     } catch (requestError) { setError(managerErrorText(requestError)); }
   }
   if (!challenge) return <main className="min-h-screen bg-[#f8f7f3]" />;
-  return <main className="manager-simple grid min-h-screen place-items-center bg-[#f8f7f3] px-4 py-8"><form onSubmit={(event: FormEvent) => { event.preventDefault(); void verifyCode(code); }} className="w-full max-w-[430px] border border-line bg-white p-5 text-center sm:p-8"><button type="button" onClick={() => router.push("/manager/login")} className="inline-flex min-h-[52px] w-full items-center justify-center gap-2 font-extrabold text-muted"><ChevronLeft className="h-5 w-5" /> নম্বর বদলান</button><span className="mx-auto mt-4 grid h-20 w-20 place-items-center rounded-full bg-[#e9edff] text-olive"><Smartphone className="h-10 w-10" /></span><h1 className="mt-5 text-3xl font-extrabold">৬ সংখ্যার কোড</h1><p className="mt-2 font-bold text-muted">{challenge.maskedPhone}</p><input autoFocus required inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]*" maxLength={6} value={code} onChange={(event) => setCode(event.target.value.replace(/\D/g, "").slice(0, 6))} className="mt-6 min-h-[76px] w-full border-2 border-line bg-white px-4 text-center text-4xl font-extrabold tracking-[0.35em] outline-none focus:border-olive" aria-label="Six digit code" />{challenge.devCode ? <p className="mt-3 border border-line bg-panel p-2 text-sm font-bold text-muted">DEV: {challenge.devCode}</p> : null}{error ? <p role="alert" className="mt-3 border border-red-200 bg-red-50 p-3 font-extrabold text-red-700">{error}</p> : null}<button disabled={loading || code.length !== 6} className="manager-action-press mt-4 min-h-14 w-full border border-olive bg-olive text-base font-extrabold text-white disabled:opacity-40">{loading ? "..." : "যাচাই করুন"}</button><button type="button" disabled={seconds > 0} onClick={() => void resend()} className="mt-3 inline-flex min-h-[52px] w-full items-center justify-center gap-2 font-extrabold text-muted disabled:opacity-50"><RotateCcw className="h-5 w-5" />{seconds > 0 ? `${seconds}s` : "আবার কোড নিন"}</button></form></main>;
+  return <main className="manager-simple grid min-h-screen place-items-center bg-[#f8f7f3] px-4 py-8"><form onSubmit={(event: FormEvent) => { event.preventDefault(); void verifyCode(code); }} className="w-full max-w-[430px] border border-line bg-white p-5 text-center sm:p-8"><button type="button" onClick={() => router.push("/manager/login")} className="inline-flex min-h-[52px] w-full items-center justify-center gap-2 font-extrabold text-muted"><ChevronLeft className="h-5 w-5" /> নম্বর বদলান</button><span className="mx-auto mt-4 grid h-20 w-20 place-items-center rounded-full bg-[#e9edff] text-olive"><Smartphone className="h-10 w-10" /></span><h1 className="mt-5 text-3xl font-extrabold">৬ সংখ্যার কোড</h1><p className="mt-2 font-bold text-muted">{challenge.maskedPhone}</p><input autoFocus required inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]*" maxLength={6} value={code} onChange={(event) => { const nextCode = event.target.value.replace(/\D/g, "").slice(0, 6); if (nextCode.length < 6) submittedRef.current = ""; setCode(nextCode); }} className="mt-6 min-h-[76px] w-full border-2 border-line bg-white px-4 text-center text-4xl font-extrabold tracking-[0.35em] outline-none focus:border-olive" aria-label="Six digit code" />{challenge.devCode ? <p className="mt-3 border border-line bg-panel p-2 text-sm font-bold text-muted">DEV: {challenge.devCode}</p> : null}{error ? <p role="alert" className="mt-3 border border-red-200 bg-red-50 p-3 font-extrabold text-red-700">{error}</p> : null}<button disabled={loading || code.length !== 6 || submittedRef.current === code} className="manager-action-press mt-4 min-h-14 w-full border border-olive bg-olive text-base font-extrabold text-white disabled:opacity-40">{loading ? "..." : "যাচাই করুন"}</button><button type="button" disabled={seconds > 0} onClick={() => void resend()} className="mt-3 inline-flex min-h-[52px] w-full items-center justify-center gap-2 font-extrabold text-muted disabled:opacity-50"><RotateCcw className="h-5 w-5" />{seconds > 0 ? `${seconds}s` : "আবার কোড নিন"}</button></form></main>;
 }
