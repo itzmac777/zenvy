@@ -122,10 +122,16 @@ docker compose \
   up -d --build
 ```
 
-6. Check it locally from the VPS:
+6. Check it locally from the VPS. Use the real hostname here, because Caddy serves TLS for that hostname, not for `127.0.0.1`:
 
 ```bash
-curl -kI https://127.0.0.1:2087
+curl -kI --resolve zenvy.your-domain.com:2087:127.0.0.1 https://zenvy.your-domain.com:2087
+```
+
+If that succeeds, test the public Cloudflare route from your browser:
+
+```text
+https://zenvy.your-domain.com
 ```
 
 Do not use DNS-only/gray-cloud for this mode. The Cloudflare record must be proxied so the Origin Rule can change the origin port.
