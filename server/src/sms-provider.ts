@@ -11,7 +11,7 @@ function isBdBulkSmsResult(value: unknown): value is BdBulkSmsResult {
 }
 
 function otpMessage(code: string) {
-  return `Your Zenvy OTP is ${code}. It expires in 5 minutes.`;
+  return `[Zenvy] Your OTP is ${code}. Valid for 5 minutes.`;
 }
 
 export async function sendManagerOtp(phone: string, code: string) {
