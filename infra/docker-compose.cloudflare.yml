@@ -1,0 +1,24 @@
+services:
+  caddy:
+    profiles:
+      - direct-ssl
+    ports: []
+
+  caddy-cloudflare:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      client:
+        condition: service_healthy
+      server:
+        condition: service_healthy
+    environment:
+      CADDY_SITE_ADDRESS: ${CADDY_SITE_ADDRESS}
+    ports:
+      - "${CLOUDFLARE_HTTPS_BIND:-2087}:443"
+    volumes:
+      - ./caddy/Caddyfile.cloudflare:/etc/caddy/Caddyfile:ro
+      - zenvy-caddy-data:/data
+      - zenvy-caddy-config:/config
+    networks:
+      - zenvy-public

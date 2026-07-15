@@ -1,0 +1,20 @@
+{$CADDY_SITE_ADDRESS} {
+  tls internal
+  encode zstd gzip
+
+  handle /api/* {
+    reverse_proxy server:4000
+  }
+
+  handle /uploads/* {
+    reverse_proxy server:4000
+  }
+
+  handle /health {
+    reverse_proxy server:4000
+  }
+
+  handle {
+    reverse_proxy client:3000
+  }
+}

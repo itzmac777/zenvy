@@ -76,6 +76,60 @@ everything else -> http://127.0.0.1:3200
 
 Do not start another container binding `80:80` or `443:443` on that VPS unless you first move the existing service using those ports.
 
+## Existing VPS With Cloudflare DNS And Origin Rule
+
+Use this mode when Cloudflare manages DNS for the domain and public `80`/`443` are already used by another service on the VPS.
+
+Cloudflare will receive normal browser HTTPS on `443`, then forward Zenvy traffic to the VPS on `2087`. The Zenvy Caddy container listens on `2087` only, so Mailu keeps `80` and `443`.
+
+1. In Cloudflare DNS, create a proxied record:
+
+```text
+Type: A
+Name: zenvy
+IPv4 address: your VPS IP
+Proxy status: Proxied
+```
+
+2. In Cloudflare SSL/TLS, set SSL mode to:
+
+```text
+Full
+```
+
+3. In Cloudflare Rules > Origin Rules, create:
+
+```text
+If: (http.host eq "zenvy.your-domain.com")
+Then: Destination Port = 2087
+```
+
+4. In `infra/.env`, use:
+
+```env
+PUBLIC_APP_URL=https://zenvy.your-domain.com
+CADDY_SITE_ADDRESS=zenvy.your-domain.com
+CLOUDFLARE_HTTPS_BIND=2087
+```
+
+5. Start the Cloudflare-port stack:
+
+```bash
+docker compose \
+  -p zenvy-prod \
+  -f docker-compose.yml \
+  -f docker-compose.cloudflare.yml \
+  up -d --build
+```
+
+6. Check it locally from the VPS:
+
+```bash
+curl -kI https://127.0.0.1:2087
+```
+
+Do not use DNS-only/gray-cloud for this mode. The Cloudflare record must be proxied so the Origin Rule can change the origin port.
+
 ## Useful Commands
 
 ```bash
@@ -87,3 +141,5 @@ docker compose -p zenvy-prod -f docker-compose.yml up -d --build
 ```
 
 For the existing-proxy mode, include `-f docker-compose.existing-proxy.yml` in every command.
+
+For the Cloudflare Origin Rule mode, include `-f docker-compose.cloudflare.yml` in every command.
