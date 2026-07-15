@@ -1,0 +1,13 @@
+services:
+  client:
+    ports:
+      - "${CLIENT_BIND:-127.0.0.1:3200}:3000"
+
+  server:
+    ports:
+      - "${SERVER_BIND:-127.0.0.1:4200}:4000"
+
+  caddy:
+    profiles:
+      - direct-ssl
+    ports: []

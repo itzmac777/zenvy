@@ -1,69 +1,105 @@
 services:
   mongo:
     image: mongo:7
+    restart: unless-stopped
     healthcheck:
       test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
-      interval: 5s
+      interval: 10s
       timeout: 5s
       retries: 12
-    ports:
-      - "27017:27017"
     volumes:
       - zenvy-mongo:/data/db
+    networks:
+      - zenvy-internal
 
   client:
     build:
       context: ..
       dockerfile: infra/docker/client.Dockerfile
+      args:
+        NEXT_PUBLIC_API_BASE_URL: ${PUBLIC_APP_URL}
+        NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT: ${NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT}
+        NEXT_PUBLIC_MANAGER_UI_VERSION: ${NEXT_PUBLIC_MANAGER_UI_VERSION:-simple}
+        NEXT_PUBLIC_MANAGER_SUPPORT_PHONE: ${NEXT_PUBLIC_MANAGER_SUPPORT_PHONE:-}
+        NEXT_PUBLIC_MANAGER_SUPPORT_WHATSAPP: ${NEXT_PUBLIC_MANAGER_SUPPORT_WHATSAPP:-}
+    restart: unless-stopped
     environment:
-      NEXT_PUBLIC_API_BASE_URL: http://localhost:4000
+      NODE_ENV: production
+      NEXT_PUBLIC_API_BASE_URL: ${PUBLIC_APP_URL}
+      NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT: ${NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT}
+      NEXT_PUBLIC_MANAGER_UI_VERSION: ${NEXT_PUBLIC_MANAGER_UI_VERSION:-simple}
+      NEXT_PUBLIC_MANAGER_SUPPORT_PHONE: ${NEXT_PUBLIC_MANAGER_SUPPORT_PHONE:-}
+      NEXT_PUBLIC_MANAGER_SUPPORT_WHATSAPP: ${NEXT_PUBLIC_MANAGER_SUPPORT_WHATSAPP:-}
     depends_on:
-      - server
-    ports:
-      - "3000:3000"
+      server:
+        condition: service_healthy
+    networks:
+      - zenvy-public
 
   server:
     build:
       context: ..
       dockerfile: infra/docker/server.Dockerfile
+    restart: unless-stopped
     environment:
+      NODE_ENV: production
       PORT: 4000
-      CLIENT_ORIGIN: http://localhost:3000
-      SERVER_PUBLIC_URL: http://localhost:4000
+      CLIENT_ORIGIN: ${PUBLIC_APP_URL}
+      SERVER_PUBLIC_URL: ${PUBLIC_APP_URL}
       MONGODB_URI: mongodb://mongo:27017/zenvy
-      SESSION_COOKIE_NAME: zenvy_manager_session
-      SESSION_DAYS: 30
-      OTP_SECRET: docker-development-otp-secret
-      OTP_DEV_CODE: 123456
-      MANAGER_INVITES_REQUIRED: "false"
+      SESSION_COOKIE_NAME: ${SESSION_COOKIE_NAME:-zenvy_manager_session}
+      SESSION_DAYS: ${SESSION_DAYS:-30}
+      OTP_SECRET: ${OTP_SECRET}
+      OTP_DEV_CODE: ${OTP_DEV_CODE:-}
+      MANAGER_INVITES_REQUIRED: ${MANAGER_INVITES_REQUIRED:-false}
       UPLOAD_DIR: /app/server/uploads
       IMAGEKIT_PUBLIC_KEY: ${IMAGEKIT_PUBLIC_KEY:-}
       IMAGEKIT_PRIVATE_KEY: ${IMAGEKIT_PRIVATE_KEY:-}
       IMAGEKIT_URL_ENDPOINT: ${IMAGEKIT_URL_ENDPOINT:-}
       IMAGEKIT_FIELD_FOLDER: ${IMAGEKIT_FIELD_FOLDER:-/zenvy/fields}
-      PAYSTATION_BASE_URL: https://api.paystation.com.bd
-      PAYSTATION_STORE_ID: 2693-1775830347
-      PAYSTATION_PASSWORD: dummy-paystation-password
-      PAYSTATION_CALLBACK_URL: http://localhost:4000/api/payments/paystation/callback
-      PAYSTATION_MOCK: "true"
+      PAYSTATION_BASE_URL: ${PAYSTATION_BASE_URL:-https://api.paystation.com.bd}
+      PAYSTATION_STORE_ID: ${PAYSTATION_STORE_ID}
+      PAYSTATION_PASSWORD: ${PAYSTATION_PASSWORD}
+      PAYSTATION_CALLBACK_URL: ${PUBLIC_APP_URL}/api/payments/paystation/callback
+      PAYSTATION_MOCK: ${PAYSTATION_MOCK:-false}
     depends_on:
       mongo:
         condition: service_healthy
-    ports:
-      - "4000:4000"
     volumes:
       - zenvy-uploads:/app/server/uploads
+    networks:
+      - zenvy-internal
+      - zenvy-public
 
   caddy:
     image: caddy:2-alpine
+    restart: unless-stopped
     depends_on:
-      - client
-      - server
+      client:
+        condition: service_healthy
+      server:
+        condition: service_healthy
+    environment:
+      CADDY_SITE_ADDRESS: ${CADDY_SITE_ADDRESS}
+      ACME_EMAIL: ${ACME_EMAIL:-admin@example.com}
     ports:
-      - "8080:80"
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
     volumes:
       - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - zenvy-caddy-data:/data
+      - zenvy-caddy-config:/config
+    networks:
+      - zenvy-public
+
+networks:
+  zenvy-internal:
+    internal: true
+  zenvy-public:
 
 volumes:
   zenvy-mongo:
   zenvy-uploads:
+  zenvy-caddy-data:
+  zenvy-caddy-config:

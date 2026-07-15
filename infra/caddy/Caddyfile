@@ -1,9 +1,19 @@
-:80 {
+{
+  email {$ACME_EMAIL:admin@example.com}
+}
+
+{$CADDY_SITE_ADDRESS} {
+  encode zstd gzip
+
   handle /api/* {
     reverse_proxy server:4000
   }
 
   handle /uploads/* {
+    reverse_proxy server:4000
+  }
+
+  handle /health {
     reverse_proxy server:4000
   }
 
