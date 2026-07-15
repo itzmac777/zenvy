@@ -75,7 +75,7 @@ export function serializeManagerSession(context: ManagerContext) {
 export async function requestOtp(request: Request, response: Response) {
   const phone = normalizeBangladeshPhone(String(request.body?.phone ?? ""));
   if (!phone) {
-    response.status(400).json({ message: "Enter a valid Bangladesh phone number." });
+    response.status(400).json({ code: "INVALID_PHONE", message: "Enter a valid Bangladesh phone number." });
     return;
   }
 
@@ -86,7 +86,7 @@ export async function requestOtp(request: Request, response: Response) {
     ManagerUserModel.findOne({ phone }).select("_id").lean(),
   ]);
   if (recentPhoneRequests >= OTP_SEND_LIMIT || recentIpRequests >= OTP_SEND_LIMIT * 4) {
-    response.status(429).json({ message: "Too many OTP requests. Try again in 15 minutes." });
+    response.status(429).json({ code: "OTP_RATE_LIMITED", message: "Too many OTP requests. Try again in 15 minutes." });
     return;
   }
 
@@ -94,7 +94,7 @@ export async function requestOtp(request: Request, response: Response) {
   if (!existingUser && config.managerInvitesRequired) {
     const invitationCode = String(request.body?.invitationCode ?? "").trim();
     if (!invitationCode) {
-      response.status(403).json({ message: "A valid invitation code is required." });
+      response.status(403).json({ code: "INVITATION_REQUIRED", message: "A valid invitation code is required." });
       return;
     }
     const invitation = await ManagerInvitationModel.findOne({ codeHash: hashInvitation(invitationCode) }).lean();
@@ -104,7 +104,7 @@ export async function requestOtp(request: Request, response: Response) {
       && (!invitation.expiresAt || invitation.expiresAt > new Date())
       && (!invitation.phone || invitation.phone === phone);
     if (!valid || !invitation) {
-      response.status(403).json({ message: "This invitation code is invalid or expired." });
+      response.status(403).json({ code: "INVITATION_INVALID", message: "This invitation code is invalid or expired." });
       return;
     }
     invitationId = invitation._id;
@@ -134,17 +134,17 @@ export async function verifyOtp(request: Request, response: Response) {
   const code = String(request.body?.code ?? "").trim();
   const challenge = await OtpChallengeModel.findById(challengeId);
   if (!challenge || challenge.consumedAt || challenge.expiresAt <= new Date()) {
-    response.status(400).json({ message: "This OTP has expired. Request a new one." });
+    response.status(400).json({ code: "OTP_EXPIRED", message: "This OTP has expired. Request a new one." });
     return;
   }
   if (challenge.attempts >= OTP_ATTEMPT_LIMIT) {
-    response.status(429).json({ message: "Too many incorrect attempts. Request a new OTP." });
+    response.status(429).json({ code: "OTP_ATTEMPTS_EXCEEDED", message: "Too many incorrect attempts. Request a new OTP." });
     return;
   }
   if (challenge.codeHash !== hashOtp(challenge.phone, code)) {
     challenge.attempts += 1;
     await challenge.save();
-    response.status(400).json({ message: "That OTP is not correct." });
+    response.status(400).json({ code: "OTP_INCORRECT", message: "That OTP is not correct." });
     return;
   }
 
@@ -165,7 +165,7 @@ export async function verifyOtp(request: Request, response: Response) {
 export async function requireManager(request: Request, response: Response, next: NextFunction) {
   const token = request.cookies?.[config.sessionCookieName] as string | undefined;
   if (!token) {
-    response.status(401).json({ message: "Manager login required." });
+    response.status(401).json({ code: "UNAUTHORIZED", message: "Manager login required." });
     return;
   }
 
@@ -173,14 +173,14 @@ export async function requireManager(request: Request, response: Response, next:
   if (!session || session.expiresAt <= new Date()) {
     if (session) await SessionModel.deleteOne({ _id: session._id });
     response.clearCookie(config.sessionCookieName, { path: "/" });
-    response.status(401).json({ message: "Your manager session has expired." });
+    response.status(401).json({ code: "SESSION_EXPIRED", message: "Your manager session has expired." });
     return;
   }
   const user = await ManagerUserModel.findById(session.userId).lean();
   if (!user || user.status !== "ACTIVE") {
     await SessionModel.deleteOne({ _id: session._id });
     response.clearCookie(config.sessionCookieName, { path: "/" });
-    response.status(401).json({ message: "Your manager account is unavailable." });
+    response.status(401).json({ code: "ACCOUNT_UNAVAILABLE", message: "Your manager account is unavailable." });
     return;
   }
 

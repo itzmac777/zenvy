@@ -48,6 +48,54 @@ body {
   line-height: 1;
 }
 
+.manager-simple {
+  --font-manager: var(--font-dm-sans), var(--font-manager-bangla), sans-serif;
+  font-family: var(--font-manager);
+}
+
+.manager-simple button,
+.manager-simple input,
+.manager-simple select,
+.manager-simple textarea {
+  font: inherit;
+}
+
+.manager-mobile-nav {
+  position: fixed;
+  overflow: hidden;
+  background: #fffefd;
+  box-shadow: 0 -12px 36px rgba(23, 22, 19, 0.12);
+}
+
+.manager-mobile-nav::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: #fffefd;
+}
+
+.manager-action-press {
+  transition: transform 120ms ease, border-color 120ms ease, background-color 120ms ease;
+}
+
+.manager-action-press:active {
+  transform: scale(0.985);
+}
+
+@keyframes manager-hand-tap {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  55% {
+    transform: translate3d(0, 8px, 0) scale(0.92);
+  }
+}
+
+.manager-hand-tap {
+  animation: manager-hand-tap 1.35s ease-in-out infinite;
+}
+
 .benefit-marquee {
   animation: benefit-marquee 24s linear infinite;
 }
@@ -66,5 +114,9 @@ body {
   .benefit-marquee {
     animation: none;
     overflow-x: auto;
+  }
+
+  .manager-hand-tap {
+    animation: none;
   }
 }

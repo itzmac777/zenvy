@@ -6,10 +6,17 @@ import { useRouter } from "next/navigation";
 import { type FormEvent, useState } from "react";
 import { ArrowRight, LockKeyhole, Smartphone } from "lucide-react";
 import { managerApi } from "@/lib/manager-api";
+import { SimpleManagerAuth } from "@/components/SimpleManagerAuth";
+import { simpleManagerUi } from "@/lib/manager-ui";
 
 type OtpResponse = { challengeId: string; maskedPhone: string; expiresInSeconds: number; resendAfterSeconds: number; devCode?: string };
 
 export function ManagerAuthClient() {
+  if (simpleManagerUi) return <SimpleManagerAuth />;
+  return <ClassicManagerAuthClient />;
+}
+
+function ClassicManagerAuthClient() {
   const router = useRouter();
   const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(false);

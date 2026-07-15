@@ -5,6 +5,8 @@ import { type FormEvent, useCallback, useEffect, useState } from "react";
 import { Banknote, CalendarClock, CalendarRange, Check, ChevronRight, LoaderCircle, Search, X } from "lucide-react";
 import { useManagerWorkspace } from "@/components/ManagerShell";
 import { dateKey, formatBdt, managerApi, type AvailabilityResponse, type ManagerBooking } from "@/lib/manager-api";
+import { SimpleManagerBookings } from "@/components/SimpleManagerBookings";
+import { simpleManagerUi } from "@/lib/manager-ui";
 
 const statuses = ["ALL", "CONFIRMED", "PENDING_PAYMENT", "CANCELLED", "EXPIRED"] as const;
 
@@ -13,6 +15,11 @@ function statusLabel(status: string) {
 }
 
 export function ManagerBookingsClient() {
+  if (simpleManagerUi) return <SimpleManagerBookings />;
+  return <ClassicManagerBookingsClient />;
+}
+
+function ClassicManagerBookingsClient() {
   const searchParams = useSearchParams();
   const { fields } = useManagerWorkspace();
   const [query, setQuery] = useState(searchParams.get("query") ?? "");
@@ -50,7 +57,7 @@ export function ManagerBookingsClient() {
     setSaving(true);
     setError("");
     try {
-      const data = await managerApi<{ booking: ManagerBooking }>(`/api/manager/bookings/${selected.id}/payment`, { method: "POST", body: JSON.stringify({ amountBdt: Number(payment.amount), method: payment.method }) });
+      const data = await managerApi<{ booking: ManagerBooking }>(`/api/manager/bookings/${selected.id}/payments`, { method: "POST", body: JSON.stringify({ amountBdt: Number(payment.amount), method: payment.method }) });
       setSelected(data.booking);
       setBookings((current) => current.map((booking) => booking.id === data.booking.id ? data.booking : booking));
       setPayment({ amount: "", method: "Cash" });

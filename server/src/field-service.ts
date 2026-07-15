@@ -8,12 +8,12 @@ function priceRange(field: FieldLike) {
   const prices = [field.baseRateBdt];
   if (field.dayRateBdt != null) prices.push(field.dayRateBdt);
   if (field.nightRateBdt != null) prices.push(field.nightRateBdt);
-  prices.push(...field.pricingRules.map((rule) => rule.priceBdt));
+  prices.push(...(field.pricingRules ?? []).map((rule) => rule.priceBdt));
   return { minimum: Math.min(...prices), maximum: Math.max(...prices) };
 }
 
 function openingHours(field: FieldLike) {
-  const openDays = field.weeklyHours.filter((day) => !day.isClosed);
+  const openDays = (field.weeklyHours ?? []).filter((day) => !day.isClosed);
   if (!openDays.length) return "Closed";
   const signatures = [...new Set(openDays.map((day) => `${day.opensAt}-${day.closesAt}`))];
   return signatures.length === 1 ? `${openDays[0].opensAt} - ${openDays[0].closesAt}` : "Hours vary by day";
@@ -21,14 +21,19 @@ function openingHours(field: FieldLike) {
 
 export function serializeField(field: FieldLike) {
   const prices = priceRange(field);
-  const cover = field.images.find((image) => image.isCover) ?? field.images[0];
-  const images = field.images.map((image) => ({ ...image, url: normalizeMediaUrl(image.url) }));
+  const sourceImages = field.images ?? [];
+  const cover = sourceImages.find((image) => image.isCover) ?? sourceImages[0];
+  const images = sourceImages.map((image) => ({ ...image, url: normalizeMediaUrl(image.url) }));
   const coverUrl = cover?.url ? normalizeMediaUrl(cover.url) : null;
+  const locationLabel = field.locationLabel?.trim() || [field.area, field.city].filter(Boolean).join(", ");
   return {
     id: String(field._id),
     name: field.name,
     slug: field.slug,
     code: field.code,
+    locationLabel,
+    setupLevel: field.setupLevel ?? "COMPLETE",
+    needsSupportReview: field.needsSupportReview ?? false,
     status: field.status,
     address: field.address,
     area: field.area,
@@ -53,14 +58,14 @@ export function serializeField(field: FieldLike) {
       nightRateBdt: field.nightRateBdt ?? null,
       minimumRateBdt: prices.minimum,
       maximumRateBdt: prices.maximum,
-      rules: field.pricingRules.map((rule) => ({ id: rule._id ? String(rule._id) : undefined, dayOfWeek: rule.dayOfWeek, startTime: rule.startTime, priceBdt: rule.priceBdt })),
+      rules: (field.pricingRules ?? []).map((rule) => ({ id: rule._id ? String(rule._id) : undefined, dayOfWeek: rule.dayOfWeek, startTime: rule.startTime, priceBdt: rule.priceBdt })),
     },
-    weeklyHours: field.weeklyHours.map((day) => ({ dayOfWeek: day.dayOfWeek, isClosed: day.isClosed, opensAt: day.opensAt, closesAt: day.closesAt })),
+    weeklyHours: (field.weeklyHours ?? []).map((day) => ({ dayOfWeek: day.dayOfWeek, isClosed: day.isClosed, opensAt: day.opensAt, closesAt: day.closesAt })),
     openingHours: openingHours(field),
     images: images.map((image) => ({ id: image._id ? String(image._id) : undefined, url: image.url, alt: image.alt, isCover: image.isCover, position: image.position })),
     image: coverUrl,
     alt: cover?.alt ?? field.name,
-    location: `${field.area}, ${field.city}`,
+    location: locationLabel,
     locationDetails: { address: field.address, area: field.area, city: field.city, contactPhone: field.contactPhone },
     price: prices.minimum === prices.maximum ? `BDT ${prices.minimum}/hr` : `BDT ${prices.minimum}-${prices.maximum}/hr`,
     hourlyRate: prices.minimum,

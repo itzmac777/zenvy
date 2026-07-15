@@ -5,6 +5,8 @@ import { type FormEvent, type ReactNode, useCallback, useEffect, useMemo, useSta
 import { Ban, Check, ChevronLeft, ChevronRight, CircleDollarSign, Clock3, Plus, RefreshCw, UserRound, X } from "lucide-react";
 import { dateKey, formatBdt, managerApi, type AvailabilityResponse, type AvailabilitySlot, type ManagerBooking } from "@/lib/manager-api";
 import { useManagerWorkspace } from "@/components/ManagerShell";
+import { SimpleManagerSchedule } from "@/components/SimpleManagerSchedule";
+import { simpleManagerUi } from "@/lib/manager-ui";
 
 type ScheduleMode = "today" | "calendar";
 type SheetMode = "booking" | "block" | "price" | "detail" | null;
@@ -60,6 +62,11 @@ function ActionSheet({ title, eyebrow, children, close }: { title: string; eyebr
 }
 
 export function ManagerSchedule({ mode = "today" }: { mode?: ScheduleMode }) {
+  if (simpleManagerUi) return <SimpleManagerSchedule />;
+  return <ClassicManagerSchedule mode={mode} />;
+}
+
+function ClassicManagerSchedule({ mode = "today" }: { mode?: ScheduleMode }) {
   const { fields, selectedField, setSelectedFieldId } = useManagerWorkspace();
   const [anchorDate, setAnchorDate] = useState(() => dateKey(new Date()));
   const [selectedDate, setSelectedDate] = useState(() => dateKey(new Date()));
@@ -154,7 +161,7 @@ export function ManagerSchedule({ mode = "today" }: { mode?: ScheduleMode }) {
     setSaving(true);
     setError("");
     try {
-      const data = await managerApi<{ booking: ManagerBooking }>("/api/manager/bookings/manual", {
+      const data = await managerApi<{ booking: ManagerBooking }>("/api/manager/manual-bookings", {
         method: "POST",
         body: JSON.stringify({
           fieldId: selectedField.id,

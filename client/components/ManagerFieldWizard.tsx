@@ -6,6 +6,8 @@ import { type FormEvent, useEffect, useMemo, useState } from "react";
 import { ArrowLeft, ArrowRight, Check, Goal, ImagePlus, Plus, Trash2 } from "lucide-react";
 import { useManagerWorkspace } from "@/components/ManagerShell";
 import { formatBdt, managerApi, type FieldDetail } from "@/lib/manager-api";
+import { QuickFieldWizard } from "@/components/QuickFieldWizard";
+import { simpleManagerUi } from "@/lib/manager-ui";
 
 const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const stepNames = ["Basics", "Playing details", "Hours", "Pricing", "Review"];
@@ -34,6 +36,11 @@ function initialForm(): FormState {
 }
 
 export function ManagerFieldWizard({ fieldId }: { fieldId?: string }) {
+  if (simpleManagerUi && !fieldId) return <QuickFieldWizard />;
+  return <ClassicManagerFieldWizard fieldId={fieldId} />;
+}
+
+export function ClassicManagerFieldWizard({ fieldId }: { fieldId?: string }) {
   const router = useRouter();
   const { session, refresh } = useManagerWorkspace();
   const [step, setStep] = useState(0);

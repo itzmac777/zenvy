@@ -5,8 +5,15 @@ import { useRouter } from "next/navigation";
 import { type FormEvent, useEffect, useState } from "react";
 import { ArrowRight, UserRound } from "lucide-react";
 import { managerApi, type ManagerSession } from "@/lib/manager-api";
+import { SimpleManagerOnboarding } from "@/components/SimpleManagerOnboarding";
+import { simpleManagerUi } from "@/lib/manager-ui";
 
 export function ManagerOnboardingClient() {
+  if (simpleManagerUi) return <SimpleManagerOnboarding />;
+  return <ClassicManagerOnboardingClient />;
+}
+
+function ClassicManagerOnboardingClient() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);

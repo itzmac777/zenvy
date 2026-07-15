@@ -6,8 +6,15 @@ import { useCallback, useEffect, useState } from "react";
 import { ArrowRight, Goal, Pause, Play, Plus } from "lucide-react";
 import { useManagerWorkspace } from "@/components/ManagerShell";
 import { formatBdt, managerApi, type FieldDetail } from "@/lib/manager-api";
+import { SimpleManagerFields } from "@/components/SimpleManagerFields";
+import { simpleManagerUi } from "@/lib/manager-ui";
 
 export function ManagerFieldsClient() {
+  if (simpleManagerUi) return <SimpleManagerFields />;
+  return <ClassicManagerFieldsClient />;
+}
+
+function ClassicManagerFieldsClient() {
   const { refresh } = useManagerWorkspace();
   const [fields, setFields] = useState<FieldDetail[]>([]);
   const [loading, setLoading] = useState(true);

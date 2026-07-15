@@ -21,6 +21,7 @@ import { buildAvailability, resolveRequestedSlots } from "./availability.js";
 import { config } from "./config.js";
 import { connectDatabase, databaseReady } from "./db.js";
 import { getFieldDetail, listPublicFields, serializeBooking, serializeField } from "./field-service.js";
+import { defaultCapacity, weeklyHoursFromQuick } from "./field-defaults.js";
 import { storeFieldImage } from "./media-storage.js";
 import {
   AuditLogModel,
@@ -57,7 +58,7 @@ const pricingRuleSchema = z.object({
   priceBdt: z.number().int().min(1),
 });
 
-const fieldSchema = z.object({
+const fullFieldSchema = z.object({
   name: z.string().trim().min(2).max(100),
   code: z.string().trim().min(2).max(30),
   address: z.string().trim().min(5).max(300),
@@ -86,6 +87,24 @@ const fieldSchema = z.object({
   weeklyHours: z.array(scheduleDaySchema).length(7),
   pricingRules: z.array(pricingRuleSchema).default([]),
   status: z.enum(["DRAFT", "PUBLISHED", "PAUSED", "ARCHIVED"]).default("DRAFT"),
+});
+
+const quickFieldSchema = z.object({
+  name: z.string().trim().min(2).max(100),
+  locationLabel: z.string().trim().min(2).max(180),
+  format: z.enum(["5-a-side", "6-a-side", "7-a-side", "Futsal"]),
+  opensAt: timeSchema,
+  closesAt: timeSchema,
+  openDays: z.array(z.number().int().min(0).max(6)).min(1).max(7)
+    .refine((days) => new Set(days).size === days.length, "Open days must be unique."),
+  baseRateBdt: z.number().int().min(1).max(1_000_000),
+});
+
+const basicFieldPatchSchema = quickFieldSchema.partial().superRefine((value, context) => {
+  const scheduleValues = [value.opensAt, value.closesAt, value.openDays].filter((item) => item !== undefined);
+  if (scheduleValues.length > 0 && scheduleValues.length < 3) {
+    context.addIssue({ code: "custom", message: "Opening time, closing time, and open days must be updated together." });
+  }
 });
 
 const onboardingSchema = z.object({
@@ -149,14 +168,18 @@ function fieldIdList(request: ManagerRequest) {
   return managerFieldIds(request).map((id) => String(id));
 }
 
+function sendApiError(response: Response, status: number, code: string, message: string) {
+  response.status(status).json({ code, message });
+}
+
 async function managerFieldOr404(request: ManagerRequest, response: Response, fieldId: string) {
   if (!managerOwnsField(request, fieldId)) {
-    response.status(403).json({ message: "You cannot manage this field." });
+    sendApiError(response, 403, "UNAUTHORIZED", "You cannot manage this field.");
     return null;
   }
   const field = await FieldModel.findById(fieldId).lean() as FieldLike | null;
   if (!field) {
-    response.status(404).json({ message: "Field not found." });
+    sendApiError(response, 404, "FIELD_NOT_FOUND", "Field not found.");
     return null;
   }
   return field;
@@ -193,17 +216,18 @@ function parseSuccessFlag(value: unknown) {
   return ["successful", "success", "paid", "200"].includes(String(value ?? "").toLowerCase());
 }
 
-function httpError(status: number, message: string) {
-  const error = new Error(message) as Error & { status?: number };
+function httpError(status: number, message: string, apiCode = "REQUEST_FAILED") {
+  const error = new Error(message) as Error & { status?: number; apiCode?: string };
   error.status = status;
+  error.apiCode = apiCode;
   return error;
 }
 
 async function createCheckout(input: z.infer<typeof checkoutSchema>) {
   const field = await FieldModel.findById(input.fieldId).lean() as FieldLike | null;
-  if (!field || field.status !== "PUBLISHED") throw httpError(404, "Field not available.");
+  if (!field || field.status !== "PUBLISHED") throw httpError(404, "Field not available.", "FIELD_NOT_READY");
   const phone = normalizeBangladeshPhone(input.customerPhone);
-  if (!phone) throw httpError(400, "Enter a valid Bangladesh phone number.");
+  if (!phone) throw httpError(400, "Enter a valid Bangladesh phone number.", "INVALID_PHONE");
 
   const resolved = await resolveRequestedSlots(input.fieldId, input.slotStartAts);
   const totalAmountBdt = resolved.slots.reduce((sum, slot) => sum + slot.priceBdt, 0);
@@ -294,46 +318,94 @@ app.get("/api/manager/fields", asyncRoute(requireManager), asyncRoute(async (req
 
 app.post("/api/manager/fields", asyncRoute(requireManager), asyncRoute(async (request, response) => {
   const managerRequest = request as ManagerRequest;
-  const input = fieldSchema.parse(request.body);
-  const phone = normalizeBangladeshPhone(input.contactPhone);
-  if (!phone) {
-    response.status(400).json({ message: "Enter a valid field contact number." });
-    return;
+  const isQuickCreate = typeof request.body?.locationLabel === "string" && request.body?.address == null;
+  let field: Awaited<ReturnType<typeof FieldModel.create>>;
+  let action = "FIELD_CREATED";
+
+  if (isQuickCreate) {
+    const input = quickFieldSchema.parse(request.body);
+    const locationLabel = input.locationLabel.trim();
+    field = await FieldModel.create({
+      ownerId: managerRequest.manager.user._id,
+      name: input.name,
+      slug: `${slugify(input.name)}-${Date.now().toString(36).slice(-5)}`,
+      code: `ZV-${Date.now().toString(36).slice(-6).toUpperCase()}`,
+      locationLabel,
+      setupLevel: "BASIC",
+      needsSupportReview: true,
+      address: locationLabel,
+      area: locationLabel,
+      city: "Bangladesh",
+      contactPhone: managerRequest.manager.user.phone,
+      format: input.format,
+      description: `${input.name} is an indoor football field in ${locationLabel}.`,
+      capacity: defaultCapacity(input.format),
+      surface: "Artificial turf",
+      lengthM: null,
+      widthM: null,
+      heightM: null,
+      amenities: [],
+      featured: false,
+      bookingWindowDays: 30,
+      minLeadMinutes: 60,
+      reschedulePolicy: "Free reschedule up to 12 hours before kickoff.",
+      baseRateBdt: input.baseRateBdt,
+      pricingMode: "SAME_ALL_DAY",
+      dayStart: "06:00",
+      nightStart: "18:00",
+      dayRateBdt: null,
+      nightRateBdt: null,
+      status: "DRAFT",
+      images: [],
+      weeklyHours: weeklyHoursFromQuick(input),
+      pricingRules: [],
+    });
+  } else {
+    const input = fullFieldSchema.parse(request.body);
+    const phone = normalizeBangladeshPhone(input.contactPhone);
+    if (!phone) {
+      sendApiError(response, 400, "INVALID_PHONE", "Enter a valid field contact number.");
+      return;
+    }
+    field = await FieldModel.create({
+      ownerId: managerRequest.manager.user._id,
+      name: input.name,
+      slug: `${slugify(input.name)}-${Date.now().toString().slice(-4)}`,
+      code: input.code.toUpperCase(),
+      locationLabel: [input.area, input.city].filter(Boolean).join(", "),
+      setupLevel: "COMPLETE",
+      needsSupportReview: false,
+      address: input.address,
+      area: input.area,
+      city: input.city,
+      contactPhone: phone,
+      format: input.format,
+      description: input.description,
+      capacity: input.capacity,
+      surface: input.surface,
+      lengthM: input.lengthM ?? null,
+      widthM: input.widthM ?? null,
+      heightM: input.heightM ?? null,
+      amenities: input.amenities,
+      featured: input.featured,
+      bookingWindowDays: input.bookingWindowDays,
+      minLeadMinutes: input.minLeadMinutes,
+      reschedulePolicy: input.reschedulePolicy,
+      baseRateBdt: input.baseRateBdt,
+      pricingMode: input.pricingMode,
+      dayStart: input.dayStart,
+      nightStart: input.nightStart,
+      dayRateBdt: input.dayRateBdt ?? null,
+      nightRateBdt: input.nightRateBdt ?? null,
+      status: input.status,
+      images: input.coverImageUrl ? [{ url: input.coverImageUrl, alt: input.name, isCover: true, position: 0 }] : [],
+      weeklyHours: input.weeklyHours,
+      pricingRules: input.pricingRules,
+    });
+    action = input.status === "PUBLISHED" ? "FIELD_PUBLISHED" : "FIELD_CREATED";
   }
 
-  const field = await FieldModel.create({
-    ownerId: managerRequest.manager.user._id,
-    name: input.name,
-    slug: `${slugify(input.name)}-${Date.now().toString().slice(-4)}`,
-    code: input.code.toUpperCase(),
-    address: input.address,
-    area: input.area,
-    city: input.city,
-    contactPhone: phone,
-    format: input.format,
-    description: input.description,
-    capacity: input.capacity,
-    surface: input.surface,
-    lengthM: input.lengthM ?? null,
-    widthM: input.widthM ?? null,
-    heightM: input.heightM ?? null,
-    amenities: input.amenities,
-    featured: input.featured,
-    bookingWindowDays: input.bookingWindowDays,
-    minLeadMinutes: input.minLeadMinutes,
-    reschedulePolicy: input.reschedulePolicy,
-    baseRateBdt: input.baseRateBdt,
-    pricingMode: input.pricingMode,
-    dayStart: input.dayStart,
-    nightStart: input.nightStart,
-    dayRateBdt: input.dayRateBdt ?? null,
-    nightRateBdt: input.nightRateBdt ?? null,
-    status: input.status,
-    images: input.coverImageUrl ? [{ url: input.coverImageUrl, alt: input.name, isCover: true, position: 0 }] : [],
-    weeklyHours: input.weeklyHours,
-    pricingRules: input.pricingRules,
-  });
-  await AuditLogModel.create({ ownerId: managerRequest.manager.user._id, userId: managerRequest.manager.user._id, entityType: "Field", entityId: String(field._id), action: input.status === "PUBLISHED" ? "FIELD_PUBLISHED" : "FIELD_CREATED" });
+  await AuditLogModel.create({ ownerId: managerRequest.manager.user._id, userId: managerRequest.manager.user._id, entityType: "Field", entityId: String(field._id), action });
   response.status(201).json({ field: serializeField(field.toObject() as FieldLike) });
 }));
 
@@ -346,7 +418,7 @@ app.put("/api/manager/fields/:fieldId", asyncRoute(requireManager), asyncRoute(a
   const managerRequest = request as ManagerRequest;
   const existing = await managerFieldOr404(managerRequest, response, request.params.fieldId);
   if (!existing) return;
-  const input = fieldSchema.parse(request.body);
+  const input = fullFieldSchema.parse(request.body);
   const phone = normalizeBangladeshPhone(input.contactPhone);
   if (!phone) {
     response.status(400).json({ message: "Enter a valid field contact number." });
@@ -358,6 +430,9 @@ app.put("/api/manager/fields/:fieldId", asyncRoute(requireManager), asyncRoute(a
       $set: {
         name: input.name,
         code: input.code.toUpperCase(),
+        locationLabel: [input.area, input.city].filter(Boolean).join(", "),
+        setupLevel: "COMPLETE",
+        needsSupportReview: false,
         address: input.address,
         area: input.area,
         city: input.city,
@@ -391,11 +466,59 @@ app.put("/api/manager/fields/:fieldId", asyncRoute(requireManager), asyncRoute(a
   response.json({ field: field ? serializeField(field) : serializeField(existing) });
 }));
 
+app.patch("/api/manager/fields/:fieldId/basic", asyncRoute(requireManager), asyncRoute(async (request, response) => {
+  const managerRequest = request as ManagerRequest;
+  const existing = await managerFieldOr404(managerRequest, response, request.params.fieldId);
+  if (!existing) return;
+  const input = basicFieldPatchSchema.parse(request.body);
+  if (!Object.keys(input).length) {
+    sendApiError(response, 400, "INVALID_REQUEST", "Choose something to update.");
+    return;
+  }
+
+  const updates: Record<string, unknown> = { needsSupportReview: true };
+  if (input.name !== undefined) updates.name = input.name;
+  if (input.locationLabel !== undefined) {
+    updates.locationLabel = input.locationLabel;
+    updates.address = input.locationLabel;
+    updates.area = input.locationLabel;
+  }
+  if (input.format !== undefined) {
+    updates.format = input.format;
+    updates.capacity = defaultCapacity(input.format);
+  }
+  if (input.opensAt !== undefined && input.closesAt !== undefined && input.openDays !== undefined) {
+    updates.weeklyHours = weeklyHoursFromQuick({ opensAt: input.opensAt, closesAt: input.closesAt, openDays: input.openDays });
+  }
+  if (input.baseRateBdt !== undefined) {
+    updates.baseRateBdt = input.baseRateBdt;
+    updates.pricingMode = "SAME_ALL_DAY";
+    updates.dayRateBdt = null;
+    updates.nightRateBdt = null;
+    updates.pricingRules = [];
+  }
+
+  const field = await FieldModel.findByIdAndUpdate(request.params.fieldId, { $set: updates }, { new: true }).lean() as FieldLike | null;
+  await AuditLogModel.create({
+    ownerId: managerRequest.manager.user._id,
+    userId: managerRequest.manager.user._id,
+    entityType: "Field",
+    entityId: request.params.fieldId,
+    action: "FIELD_BASIC_UPDATED",
+    metadata: { fields: Object.keys(input) },
+  });
+  response.json({ field: serializeField(field ?? existing) });
+}));
+
 app.patch("/api/manager/fields/:fieldId/status", asyncRoute(requireManager), asyncRoute(async (request, response) => {
   const managerRequest = request as ManagerRequest;
   const existing = await managerFieldOr404(managerRequest, response, request.params.fieldId);
   if (!existing) return;
   const status = z.enum(["DRAFT", "PUBLISHED", "PAUSED", "ARCHIVED"]).parse(request.body?.status);
+  if (status === "PUBLISHED" && (existing.setupLevel ?? "COMPLETE") === "BASIC" && !(existing.images ?? []).length) {
+    sendApiError(response, 400, "FIELD_NOT_READY", "Add a field photo before publishing.");
+    return;
+  }
   const field = await FieldModel.findByIdAndUpdate(request.params.fieldId, { $set: { status } }, { new: true }).lean() as FieldLike | null;
   await AuditLogModel.create({ ownerId: managerRequest.manager.user._id, userId: managerRequest.manager.user._id, entityType: "Field", entityId: request.params.fieldId, action: `FIELD_${status}` });
   response.json({ field: serializeField(field ?? existing) });
@@ -405,11 +528,11 @@ app.post("/api/manager/fields/:fieldId/images", asyncRoute(requireManager), uplo
   const managerRequest = request as ManagerRequest;
   const field = await FieldModel.findById(request.params.fieldId);
   if (!field || !managerOwnsField(managerRequest, request.params.fieldId)) {
-    response.status(404).json({ message: "Field not found." });
+    sendApiError(response, 404, "FIELD_NOT_FOUND", "Field not found.");
     return;
   }
   if (!request.file) {
-    response.status(400).json({ message: "Upload an image file." });
+    sendApiError(response, 400, "IMAGE_REQUIRED", "Upload an image file.");
     return;
   }
   const isCover = String(request.body?.isCover ?? "false") === "true";
@@ -418,6 +541,7 @@ app.post("/api/manager/fields/:fieldId/images", asyncRoute(requireManager), uplo
   const stored = await storeFieldImage(request.file, field.slug || String(field._id));
   const image = { url: stored.url, alt: String(request.body?.alt ?? field.name), isCover: isCover || images.length === 0, position: images.length };
   images.push(image);
+  (field as any).needsSupportReview = true;
   await field.save();
   response.status(201).json({ image });
 }));
@@ -426,7 +550,7 @@ app.get("/api/manager/availability", asyncRoute(requireManager), asyncRoute(asyn
   const managerRequest = request as ManagerRequest;
   const fieldId = String(request.query.fieldId ?? "");
   if (!managerOwnsField(managerRequest, fieldId)) {
-    response.status(403).json({ message: "You cannot view this field." });
+    sendApiError(response, 403, "UNAUTHORIZED", "You cannot view this field.");
     return;
   }
   const data = await buildAvailability(fieldId, String(request.query.from ?? dateKeyInDhaka(new Date())), String(request.query.to ?? dateKeyInDhaka(new Date())), true);
@@ -437,7 +561,7 @@ app.post("/api/manager/slot-overrides", asyncRoute(requireManager), asyncRoute(a
   const managerRequest = request as ManagerRequest;
   const input = overrideSchema.parse(request.body);
   if (!managerOwnsField(managerRequest, input.fieldId)) {
-    response.status(403).json({ message: "You cannot edit this field." });
+    sendApiError(response, 403, "UNAUTHORIZED", "You cannot edit this field.");
     return;
   }
   const starts = input.slotStartAts.map((value) => new Date(value));
@@ -460,7 +584,7 @@ app.post("/api/manager/manual-bookings", asyncRoute(requireManager), asyncRoute(
   if (!field) return;
   const phone = normalizeBangladeshPhone(input.customerPhone);
   if (!phone) {
-    response.status(400).json({ message: "Enter a valid customer phone number." });
+    sendApiError(response, 400, "INVALID_PHONE", "Enter a valid customer phone number.");
     return;
   }
   const resolved = await resolveRequestedSlots(input.fieldId, input.slotStartAts, true);
@@ -522,7 +646,7 @@ app.delete("/api/manager/blocks/:blockId", asyncRoute(requireManager), asyncRout
   const managerRequest = request as ManagerRequest;
   const block = await SlotBlockModel.findById(request.params.blockId).lean();
   if (!block || String(block.ownerId) !== String(managerRequest.manager.user._id)) {
-    response.status(404).json({ message: "Block not found." });
+    sendApiError(response, 404, "BLOCK_NOT_FOUND", "Block not found.");
     return;
   }
   await Promise.all([
@@ -536,8 +660,12 @@ app.delete("/api/manager/blocks/:blockId", asyncRoute(requireManager), asyncRout
 app.get("/api/manager/bookings", asyncRoute(requireManager), asyncRoute(async (request, response) => {
   const ids = fieldIdList(request as ManagerRequest);
   const query = String(request.query.query ?? "").trim();
+  const requestedFieldId = String(request.query.fieldId ?? "");
+  const requestedStatus = String(request.query.status ?? "");
+  const fieldIds = requestedFieldId && ids.includes(requestedFieldId) ? [requestedFieldId] : ids;
   const find = {
-    fieldId: { $in: ids },
+    fieldId: { $in: fieldIds },
+    ...(requestedStatus && ["PENDING_PAYMENT", "CONFIRMED", "CANCELLED", "EXPIRED"].includes(requestedStatus) ? { status: requestedStatus } : {}),
     ...(query ? { $or: [{ invoiceNumber: new RegExp(query, "i") }, { customerPhone: new RegExp(query.replace(/\D/g, ""), "i") }, { customerName: new RegExp(query, "i") }] } : {}),
   };
   const bookings = await BookingModel.find(find).sort({ createdAt: -1 }).limit(80).lean() as BookingLike[];
@@ -557,7 +685,7 @@ app.get("/api/manager/bookings/:bookingId", asyncRoute(requireManager), asyncRou
     fieldId: { $in: ids },
   }).lean() as BookingLike | null;
   if (!booking) {
-    response.status(404).json({ message: "Booking not found." });
+    sendApiError(response, 404, "BOOKING_NOT_FOUND", "Booking not found.");
     return;
   }
   const field = await FieldModel.findById(booking.fieldId).lean() as FieldLike | null;
@@ -569,7 +697,7 @@ app.post("/api/manager/bookings/:bookingId/cancel", asyncRoute(requireManager), 
   const ids = fieldIdList(managerRequest);
   const booking = await BookingModel.findOne({ _id: request.params.bookingId, fieldId: { $in: ids } }).lean() as BookingLike | null;
   if (!booking) {
-    response.status(404).json({ message: "Booking not found." });
+    sendApiError(response, 404, "BOOKING_NOT_FOUND", "Booking not found.");
     return;
   }
   await Promise.all([
@@ -587,13 +715,19 @@ app.post("/api/manager/bookings/:bookingId/payments", asyncRoute(requireManager)
   const method = z.enum(["Cash", "bKash", "Nagad", "Rocket", "Upay", "Card", "Bank", "Other"]).parse(request.body?.method ?? "Cash");
   const booking = await BookingModel.findOne({ _id: request.params.bookingId, fieldId: { $in: fieldIdList(managerRequest) } });
   if (!booking) {
-    response.status(404).json({ message: "Booking not found." });
+    sendApiError(response, 404, "BOOKING_NOT_FOUND", "Booking not found.");
     return;
   }
-  (booking as any).paidAmountBdt = Math.min((booking as any).totalAmountBdt, (booking as any).paidAmountBdt + amount);
-  (booking as any).payments.push({ provider: "manual", amountBdt: amount, status: "SUCCESS", method });
+  const balance = Math.max(0, (booking as any).totalAmountBdt - (booking as any).paidAmountBdt);
+  if (!balance) {
+    sendApiError(response, 409, "BOOKING_ALREADY_PAID", "This booking is already paid in full.");
+    return;
+  }
+  const appliedAmount = Math.min(balance, amount);
+  (booking as any).paidAmountBdt += appliedAmount;
+  (booking as any).payments.push({ provider: "manual", amountBdt: appliedAmount, status: "SUCCESS", method });
   await booking.save();
-  await AuditLogModel.create({ ownerId: managerRequest.manager.user._id, userId: managerRequest.manager.user._id, entityType: "Booking", entityId: String(booking._id), action: "PAYMENT_RECORDED", metadata: { amountBdt: amount, method } });
+  await AuditLogModel.create({ ownerId: managerRequest.manager.user._id, userId: managerRequest.manager.user._id, entityType: "Booking", entityId: String(booking._id), action: "PAYMENT_RECORDED", metadata: { amountBdt: appliedAmount, method } });
   response.json({ booking: await loadSerializedBooking(String(booking._id)) });
 }));
 
@@ -601,7 +735,7 @@ app.post("/api/manager/bookings/:bookingId/reschedule", asyncRoute(requireManage
   const managerRequest = request as ManagerRequest;
   const booking = await BookingModel.findOne({ _id: request.params.bookingId, fieldId: { $in: fieldIdList(managerRequest) } });
   if (!booking) {
-    response.status(404).json({ message: "Booking not found." });
+    sendApiError(response, 404, "BOOKING_NOT_FOUND", "Booking not found.");
     return;
   }
   const slotStartAts = z.array(z.string().datetime()).min(1).max(12).parse(request.body?.slotStartAts);
@@ -731,18 +865,29 @@ app.get("/api/payments/paystation/callback", asyncRoute(async (request, response
 app.use((error: unknown, _request: Request, response: Response, _next: NextFunction) => {
   console.error(error);
   if (error instanceof z.ZodError) {
-    response.status(400).json({ message: error.issues[0]?.message ?? "Invalid request." });
+    response.status(400).json({ code: "INVALID_REQUEST", message: error.issues[0]?.message ?? "Invalid request." });
     return;
   }
   if (typeof error === "object" && error && "code" in error && (error as { code?: number }).code === 11000) {
-    response.status(409).json({ message: "That slot or field is already taken." });
+    response.status(409).json({ code: "SLOT_TAKEN", message: "That slot or field is already taken." });
     return;
   }
   if (typeof error === "object" && error && "status" in error && typeof (error as { status?: unknown }).status === "number") {
-    response.status((error as { status: number }).status).json({ message: error instanceof Error ? error.message : "Request failed." });
+    response.status((error as { status: number }).status).json({
+      code: (error as { apiCode?: string }).apiCode ?? "REQUEST_FAILED",
+      message: error instanceof Error ? error.message : "Request failed.",
+    });
     return;
   }
-  response.status(500).json({ message: error instanceof Error ? error.message : "Something went wrong." });
+  if (error instanceof Error && /no longer available|already taken/i.test(error.message)) {
+    response.status(409).json({ code: "SLOT_TAKEN", message: error.message });
+    return;
+  }
+  if (error instanceof Error && /valid one-hour slots|consecutive|date range/i.test(error.message)) {
+    response.status(400).json({ code: "INVALID_SLOTS", message: error.message });
+    return;
+  }
+  response.status(500).json({ code: "SERVER_ERROR", message: error instanceof Error ? error.message : "Something went wrong." });
 });
 
 connectDatabase()

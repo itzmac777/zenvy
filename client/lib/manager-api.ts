@@ -24,6 +24,9 @@ export type FieldDetail = {
   name: string;
   slug: string;
   code: string;
+  locationLabel: string;
+  setupLevel: "BASIC" | "COMPLETE";
+  needsSupportReview: boolean;
   status: "DRAFT" | "PUBLISHED" | "PAUSED" | "ARCHIVED";
   format: string;
   description: string;
@@ -126,8 +129,15 @@ export async function managerApi<T>(path: string, options: RequestInit = {}) {
   if (options.body && !(options.body instanceof FormData)) headers.set("Content-Type", "application/json");
   const response = await fetch(`${apiBaseUrl}${path}`, { ...options, headers, credentials: "include" });
   const data = response.status === 204 ? null : await response.json().catch(() => null);
-  if (!response.ok) throw new Error(data?.message ?? "Unable to complete this request.");
+  if (!response.ok) throw new ManagerApiError(data?.message ?? "Unable to complete this request.", data?.code ?? "REQUEST_FAILED", response.status);
   return data as T;
+}
+
+export class ManagerApiError extends Error {
+  constructor(message: string, public readonly code: string, public readonly status: number) {
+    super(message);
+    this.name = "ManagerApiError";
+  }
 }
 
 export function formatBdt(value: number) {

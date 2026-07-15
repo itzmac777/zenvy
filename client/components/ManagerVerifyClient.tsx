@@ -5,10 +5,17 @@ import { useRouter } from "next/navigation";
 import { type ClipboardEvent, type FormEvent, type KeyboardEvent, useEffect, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, RotateCcw } from "lucide-react";
 import { managerApi, type ManagerSession } from "@/lib/manager-api";
+import { SimpleManagerVerify } from "@/components/SimpleManagerVerify";
+import { simpleManagerUi } from "@/lib/manager-ui";
 
 type StoredChallenge = { challengeId: string; maskedPhone: string; expiresInSeconds: number; resendAfterSeconds: number; devCode?: string; phone: string };
 
 export function ManagerVerifyClient() {
+  if (simpleManagerUi) return <SimpleManagerVerify />;
+  return <ClassicManagerVerifyClient />;
+}
+
+function ClassicManagerVerifyClient() {
   const router = useRouter();
   const refs = useRef<Array<HTMLInputElement | null>>([]);
   const [challenge, setChallenge] = useState<StoredChallenge | null>(null);

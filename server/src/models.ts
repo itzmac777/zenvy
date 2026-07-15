@@ -3,6 +3,7 @@ import mongoose, { Schema, type Model, type Types } from "mongoose";
 const { model, models } = mongoose;
 
 export type FieldStatus = "DRAFT" | "PUBLISHED" | "PAUSED" | "ARCHIVED";
+export type FieldSetupLevel = "BASIC" | "COMPLETE";
 export type PricingMode = "SAME_ALL_DAY" | "DAY_NIGHT" | "CUSTOM";
 export type BookingStatus = "PENDING_PAYMENT" | "CONFIRMED" | "CANCELLED" | "EXPIRED";
 export type BookingSource = "PUBLIC" | "MANAGER";
@@ -75,6 +76,9 @@ export interface FieldRecord {
   name: string;
   slug: string;
   code: string;
+  locationLabel?: string;
+  setupLevel: FieldSetupLevel;
+  needsSupportReview: boolean;
   address: string;
   area: string;
   city: string;
@@ -264,6 +268,9 @@ const fieldSchema = new Schema<FieldRecord>({
   name: { type: String, required: true },
   slug: { type: String, required: true, unique: true, index: true },
   code: { type: String, required: true },
+  locationLabel: { type: String, default: "" },
+  setupLevel: { type: String, enum: ["BASIC", "COMPLETE"], default: "COMPLETE" },
+  needsSupportReview: { type: Boolean, default: false },
   address: { type: String, required: true },
   area: { type: String, required: true },
   city: { type: String, required: true, default: "Dhaka" },
