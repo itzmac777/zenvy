@@ -124,7 +124,7 @@ export async function requestOtp(request: Request, response: Response) {
   } catch (error) {
     await OtpChallengeModel.deleteOne({ _id: challenge._id });
     console.error("[Zenvy OTP] SMS delivery failed", error);
-    response.status(502).json({ code: "SMS_DELIVERY_FAILED", message: "Unable to send OTP right now." });
+    response.status(503).json({ code: "SMS_DELIVERY_FAILED", message: "Unable to send OTP right now." });
     return;
   }
 
