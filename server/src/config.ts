@@ -15,6 +15,10 @@ const hasRealPaystationPassword = paystationPassword.trim() !== "" && paystation
 const serverPublicUrl = process.env.SERVER_PUBLIC_URL ?? `http://localhost:${process.env.PORT ?? 4000}`;
 const imagekitPrivateKey = process.env.IMAGEKIT_PRIVATE_KEY?.trim() ?? "";
 const bdBulkSmsToken = process.env.BD_BULK_SMS_TOKEN?.trim() ?? "";
+const smsNetBdApiKey = process.env.SMS_NET_BD_API_KEY?.trim() ?? "";
+const requestedSmsProvider = process.env.SMS_PROVIDER?.trim().toLowerCase().replace(/-/g, "_");
+const smsProvider = requestedSmsProvider
+  || (smsNetBdApiKey ? "sms_net_bd" : bdBulkSmsToken ? "bd_bulk_sms" : "development");
 
 export const config = {
   nodeEnv: process.env.NODE_ENV ?? "development",
@@ -43,9 +47,12 @@ export const config = {
     mock: paystationMockFlag === "true" || (paystationMockFlag !== "false" && !hasRealPaystationPassword),
   },
   sms: {
-    provider: bdBulkSmsToken ? "bd-bulk-sms" : "development",
+    provider: smsProvider,
+    smsNetBdApiKey,
+    smsNetBdUrl: process.env.SMS_NET_BD_URL?.trim() || "https://api.sms.net.bd/sendsms",
+    smsNetBdSenderId: process.env.SMS_NET_BD_SENDER_ID?.trim() || undefined,
     bdBulkSmsToken,
     bdBulkSmsUrl: process.env.BD_BULK_SMS_URL?.trim() || "https://api.bdbulksms.net/api.php?json",
-    enabled: bdBulkSmsToken.length > 0,
+    enabled: smsProvider !== "development",
   },
 };

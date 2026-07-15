@@ -52,6 +52,10 @@ services:
       OTP_SECRET: ${OTP_SECRET}
       OTP_DEV_CODE: ${OTP_DEV_CODE:-}
       MANAGER_INVITES_REQUIRED: ${MANAGER_INVITES_REQUIRED:-false}
+      SMS_PROVIDER: ${SMS_PROVIDER:-}
+      SMS_NET_BD_API_KEY: ${SMS_NET_BD_API_KEY:-}
+      SMS_NET_BD_URL: ${SMS_NET_BD_URL:-https://api.sms.net.bd/sendsms}
+      SMS_NET_BD_SENDER_ID: ${SMS_NET_BD_SENDER_ID:-}
       BD_BULK_SMS_TOKEN: ${BD_BULK_SMS_TOKEN:-}
       BD_BULK_SMS_URL: ${BD_BULK_SMS_URL:-https://api.bdbulksms.net/api.php?json}
       UPLOAD_DIR: /app/server/uploads

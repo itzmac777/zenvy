@@ -30,14 +30,26 @@ ACME_EMAIL=you@example.com
 OTP_SECRET=use-a-long-random-secret
 PAYSTATION_STORE_ID=2693-1775830347
 PAYSTATION_PASSWORD=your-paystation-password
-BD_BULK_SMS_TOKEN=your-bd-bulk-sms-token
+SMS_NET_BD_API_KEY=your-sms-net-bd-api-key
 IMAGEKIT_PUBLIC_KEY=your-imagekit-public-key
 IMAGEKIT_PRIVATE_KEY=your-imagekit-private-key
 IMAGEKIT_URL_ENDPOINT=https://ik.imagekit.io/your-imagekit-id
 NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT=https://ik.imagekit.io/your-imagekit-id
 ```
 
-For Docker deployments, keep `BD_BULK_SMS_TOKEN` in `infra/.env`. `server/.env` is only read when running the server outside Docker.
+For Docker deployments, keep SMS provider credentials in `infra/.env`. `server/.env` is only read when running the server outside Docker.
+
+SMS provider selection:
+
+```env
+# Preferred provider. This is also the default when SMS_NET_BD_API_KEY exists.
+SMS_PROVIDER=sms_net_bd
+SMS_NET_BD_API_KEY=your-sms-net-bd-api-key
+
+# Keep these only if you want to switch back later.
+# SMS_PROVIDER=bd_bulk_sms
+# BD_BULK_SMS_TOKEN=your-bd-bulk-sms-token
+```
 
 4. Start the stack:
 
